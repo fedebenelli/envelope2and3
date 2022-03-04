@@ -13,17 +13,24 @@
     implicit DOUBLE PRECISION (A-H,O-Z)
     LOGICAL Comp3ph
     COMMON /writeComp/ Comp3ph, i1, i2
+    CHARACTER(len=5) arg
     OPEN(1,FILE='envelIN.txt')
     OPEN(2,FILE='envelOUT.txt')
     read(1,*) N
     write(6,*)'write extra output with compositions for 2 compounds along 3-phase lines?'
     write(6,*)'Enter 1 for YES. Otherwise, any other number.'
-    read(5,*)i
+    !read(5,*)i
+    call get_command_argument(1, arg)
+    read(arg, *) i
     if(i==1) Comp3ph = .true.
     if(Comp3ph)then
         OPEN(3,FILE='Comp3phOUT.txt')
         write(6,*)'Enter order numbers for two selected compounds, separated by space.'
-        read(5,*) i1, i2
+        call get_command_argument(2, arg)
+        !read(5,*) i1, i2
+        read(arg, *) i1
+        call get_command_argument(3, arg)
+        read(arg, *) i2
         write(3,*)'Molar fractions along three-phase boundaries are printed below for compounds with order:',i1,i2
     end if
     
