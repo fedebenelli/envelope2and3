@@ -108,7 +108,7 @@ subroutine readcase(n)
     write (2, 4) (z(i), i=1, n)
 4   FORMAT('Molar fractions: ', 20F7.4)
 
-! Passing values from commons(nco) to input arguments (n)
+    ! Passing values from commons(nco) to input arguments (n)
     TCn = tc(:n)
     PCn = pc(:n)
     OMGn = omg(:n)
@@ -325,12 +325,14 @@ subroutine WriteEnvel(n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
     integer :: ncri
 
     character(len=200) :: filename
+    character(len=200) :: basename='envelout'
 
     out_i = out_i + 1
-    filename = outfile('envelout', out_i)
+    print *, head
+    filename = outfile(basename, out_i)
+    print *, head, filename
 
     open(unit=2, file=trim(filename))
-    WRITE (2, *)
     WRITE (2, *) '   T(K)        P(bar)        D(mol/L)'
     do i = 1, n_points
         WRITE (2, 1) Tv(i), Pv(i), Dv(i)
@@ -1029,6 +1031,7 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
             JAC(2*n + 2, 2*n + 3) = sum(dwdB - dxdB)  ! wrt beta
             JAC(2*n + 3, :) = 0.d0
             JAC(2*n + 3, ns) = 1.d0
+
 !   After JAC calculated, print to compare with numerical values:
 !        write(2,*)'JACK2:  ',JAC(:,2)
 !        write(2,*)'JACKn:  ',JAC(:,n)
