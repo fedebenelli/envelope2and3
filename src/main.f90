@@ -8,13 +8,14 @@
 !        COMMON /Tdep/ Kinf,Tstar
 
 program calc_envelope2and3
-
+    use file_operations, only: out_i
     implicit DOUBLE PRECISION(A - H, O - Z)
     LOGICAL Comp3ph
-    character(len=200) :: outfile
     COMMON/writeComp/Comp3ph, i1, i2
+    out_i = 0
     OPEN (1, FILE='envelIN.txt')
     OPEN (2, FILE='envelOUT.txt')
+    close(2)
     read (1, *) N
     write (6, *) 'write extra output with compositions for 2 compounds along 3-phase lines?'
     write (6, *) 'Enter 1 for YES. Otherwise, any other number.'
@@ -93,6 +94,7 @@ subroutine readcase(n)
     COMMON/CrossingPoints/Tcr1, Pcr1, Tcr2, Pcr2, KFcr1, Kscr1, KFcr2, Kscr2
     COMMON/lowTbub/TlowT, PlowT, KlowT, PHILOGxlowT !shared with envelope2
     COMMON/lowTKsep/KFsep1     !shared with envelope3
+    
     Tcr1 = 0.d0 ! T of 1st crossing point detected between different envelope segments
     Tcr2 = 0.d0
     READ (1, *) (z(j), j=1, N)
@@ -300,11 +302,10 @@ subroutine readcase(n)
                        Kij_or_K0n, Tstarn, Lijn, n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
         call WriteEnvel(n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
     end if
-
 end subroutine readcase
 
 subroutine WriteEnvel(n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
-
+    use file_operations, only: outfile, out_i
     ! T, P and Density of the calculated envelope
     DOUBLE PRECISION, dimension(800) :: Tv
     DOUBLE PRECISION, dimension(800) :: Pv
@@ -323,6 +324,12 @@ subroutine WriteEnvel(n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
     ! number of valid elements in icri, Tcri, Pcri and Dcri arrays
     integer :: ncri
 
+    character(len=200) :: filename
+
+    out_i = out_i + 1
+    filename = outfile('envelout', out_i)
+
+    open(unit=2, file=trim(filename))
     WRITE (2, *)
     WRITE (2, *) '   T(K)        P(bar)        D(mol/L)'
     do i = 1, n_points
@@ -335,6 +342,7 @@ subroutine WriteEnvel(n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
     do i = 1, ncri
         WRITE (2, 1) Tcri(i), Pcri(i), Dcri(i), icri(i)
     end do
+    close(2)
 end subroutine WriteEnvel
 
 subroutine CheckCross(XpairA, YpairA, XpairB, YpairB, Cross, Xcr, Ycr)
@@ -1193,7 +1201,6 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
 end subroutine envelope3
 
 subroutine EvalFEnvel3(n, z, X, F)
-
     implicit DOUBLE PRECISION(A - H, O - Z)
     DOUBLE PRECISION, dimension(n) :: KFACT, KFsep
     DOUBLE PRECISION, dimension(n) :: z, y, xx, w, PHILOGy, PHILOGx, PHILOGw
