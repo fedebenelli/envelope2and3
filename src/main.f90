@@ -8,18 +8,18 @@
 !        COMMON /Tdep/ Kinf,Tstar
 
 program calc_envelope2and3
-    use file_operations, only: out_i
+    use file_operations, only: outfile, out_i
     implicit DOUBLE PRECISION(A - H, O - Z)
     LOGICAL Comp3ph
     COMMON/writeComp/Comp3ph, i1, i2
-    out_i = 0
     OPEN (1, FILE='envelIN.txt')
     OPEN (2, FILE='envelOUT.txt')
-    close(2)
     read (1, *) N
-    write (6, *) 'write extra output with compositions for 2 compounds along 3-phase lines?'
-    write (6, *) 'Enter 1 for YES. Otherwise, any other number.'
-    read (5, *) i
+    !write (6, *) 'write extra output with compositions for 2 compounds along 3-phase lines?'
+    !write (6, *) 'Enter 1 for YES. Otherwise, any other number.'
+    ! read (5, *) i
+    i = 0
+    
     if (i == 1) Comp3ph = .true.
     if (Comp3ph) then
         OPEN (3, FILE='Comp3phOUT.txt')
@@ -305,7 +305,7 @@ subroutine readcase(n)
 end subroutine readcase
 
 subroutine WriteEnvel(n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
-    use file_operations, only: outfile, out_i
+    use file_operations, only: out_i, outfile
     ! T, P and Density of the calculated envelope
     DOUBLE PRECISION, dimension(800) :: Tv
     DOUBLE PRECISION, dimension(800) :: Pv
@@ -325,26 +325,26 @@ subroutine WriteEnvel(n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
     integer :: ncri
 
     character(len=200) :: filename
-    character(len=200) :: basename='envelout'
 
     out_i = out_i + 1
-    print *, head
-    filename = outfile(basename, out_i)
-    print *, head, filename
+    filename = "envelout"
+    filename = outfile(filename, out_i)
 
-    open(unit=2, file=trim(filename))
-    WRITE (2, *) '   T(K)        P(bar)        D(mol/L)'
+    open(unit=out_i, file=filename)
+
+
+    !WRITE (out_i, *)
+    WRITE (out_i, *) '   T(K)        P(bar)        D(mol/L)'
     do i = 1, n_points
-        WRITE (2, 1) Tv(i), Pv(i), Dv(i)
+        WRITE (out_i, 1) Tv(i), Pv(i), Dv(i)
     end do
 1   FORMAT(F12.4, 2E14.4, x, I4)
-    WRITE (2, *)
-    WRITE (2, *) ' Number of critical points found: ', ncri
-    WRITE (2, *) '   T(K)        P(bar)        D(mol/L)'
+    WRITE (out_i, *)
+    WRITE (out_i, *) ' Number of critical points found: ', ncri
+    WRITE (out_i, *) '   T(K)        P(bar)        D(mol/L)'
     do i = 1, ncri
-        WRITE (2, 1) Tcri(i), Pcri(i), Dcri(i), icri(i)
+        WRITE (out_i, 1) Tcri(i), Pcri(i), Dcri(i), icri(i)
     end do
-    close(2)
 end subroutine WriteEnvel
 
 subroutine CheckCross(XpairA, YpairA, XpairB, YpairB, Cross, Xcr, Ycr)
