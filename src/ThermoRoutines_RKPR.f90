@@ -145,8 +145,8 @@ end subroutine readRKPRNC
 !  Then Kij values will be called indicating the lower index first, e.g. Kij(1,3)
 
 subroutine aTder(ac, Tc, rk, T, a, dadT, dadT2)
-!  Given ac,Tc and the k parameter of the RKPR correlation, as well as the actual T,
-!  this subroutine calculates a(T) and its first and second derivatives with T.
+   ! Given ac,Tc and the k parameter of the RKPR correlation, as well as the actual T,
+   ! this subroutine calculates a(T) and its first and second derivatives with T.
    implicit DOUBLE PRECISION(A - H, O - Z)
    COMMON/MODEL/NMODEL
    Tr = T/Tc
@@ -334,6 +334,7 @@ subroutine HelmRKPR(nco, NDE, NTD, rn, V, T, Ar, ArV, ArTV, ArV2, Arn, ArVn, ArT
       ! call Bcubicnder(nc,rn,Bmix,dBi,dBij)
       ! call DCubicandTnder(NTD,nc,T,rn,D,dDi,dDiT,dDij,dDdT,dDdT2)
    end if
+
    !  The f's and g's used here are for Ar, not F (reduced Ar)
    !  This requires to multiply by R all g, f and its derivatives as defined by Mollerup
    f = log((V + D1*Bmix)/(V + D2*Bmix))/Bmix/(D1 - D2)
@@ -343,6 +344,7 @@ subroutine HelmRKPR(nco, NDE, NTD, rn, V, T, Ar, ArV, ArTV, ArV2, Arn, ArVn, ArT
    gv = RGAS*Bmix/(V*(V - Bmix))
    fv2 = (-1/(V + D1*Bmix)**2 + 1/(V + D2*Bmix)**2)/Bmix/(D1 - D2)
    gv2 = RGAS*(1/V**2 - 1/(V - Bmix)**2)
+
    ! DERIVATIVES OF f WITH RESPECT TO DELTA1
    auxD2 = (1 + 2/(1 + D1)**2)
    fD1 = (1/(V + D1*Bmix) + 2/(V + D2*Bmix)/(1 + D1)**2) - f*auxD2
@@ -353,6 +355,7 @@ subroutine HelmRKPR(nco, NDE, NTD, rn, V, T, Ar, ArV, ArTV, ArV2, Arn, ArVn, ArT
    fD1D1 = 4*(f - 1/(V + D2*Bmix))/(1 + D1)**3 + Bmix*(-1/(V + D1*Bmix)**2  & 
            + 4/(V + D2*Bmix)**2/(1 + D1)**4) - 2*fD1*(1 + 2/(1 + D1)**2)
    fD1D1 = fD1D1/(D1 - D2)
+
    ! Reduced Helmholtz Energy and derivatives
    Ar = -TOTN*g*T - D*f
    ArV = -TOTN*gv*T - D*fv
@@ -399,7 +402,7 @@ SUBROUTINE TERMO(nc, MTYP, INDIC, T, P, rn, V, PHILOG, DLPHIP, DLPHIT, FUGN)
    !  DLPHIT    t-derivative of ln(phi(i)) (const P, n)    (output)   INDIC = 2 or 4
    !  DLPHIP    P-derivative of ln(phi(i)) (const T, n)    (output)   INDIC < 5
    !  FUGN      comp-derivative of ln(phi(i)) (const t & P)(output)   INDIC > 2
-   !  ---------------------------------------------------
+   !  -------------------------------------------------------------------------
    IMPLICIT DOUBLE PRECISION(A - H, O - Z)
    PARAMETER(RGAS=0.08314472d0)
    real*8, dimension(nc), intent(out), optional :: PHILOG, DLPHIT, DLPHIP
@@ -532,8 +535,8 @@ SUBROUTINE VCALC(ITYP, nc, NTEMP, rn, T, P, V)
    ITER = 0
 
    ZETMIN = 0.D0
-   ! ZETMAX = 1.D0-0.01*T/500        !.99D0  This is flexible for low T (V very close to B)
-   ZETMAX = 1.D0 - 0.01*T/(10000*B)  ! improvement for cases with heavy components
+   ZETMAX = 1.D0-0.01*T/500        !.99D0  This is flexible for low T (V very close to B)
+   !ZETMAX = 1.D0 - 0.01*T/(10000*B)  ! improvement for cases with heavy components
    IF (ITYP .GT. 0) THEN
       ZETA = .5D0
    ELSE
@@ -553,6 +556,7 @@ SUBROUTINE VCALC(ITYP, nc, NTEMP, rn, T, P, V)
    ELSE
       ZETMIN = ZETA
    END IF
+
    AT = (Ar + V*P)/(T*RGAS) - TOTN*LOG(V)
    ! AT is something close to Gr(P,T)
    DER = (ArV2*V**2 + TOTN*RGAS*T)*S3R  ! this is dPdrho/B
@@ -560,8 +564,10 @@ SUBROUTINE VCALC(ITYP, nc, NTEMP, rn, T, P, V)
    ZETA = ZETA + MAX(MIN(DEL, 0.1D0), -.1D0)
    IF (ZETA .GT. ZETMAX .OR. ZETA .LT. ZETMIN) &
       ZETA = .5D0*(ZETMAX + ZETMIN)
+
    IF (ABS(PCALC - P) .LT. 1D-12) GOTO 101
    IF (ABS(DEL) .GT. 1D-10) GOTO 100
+
 101 IF (ITYP .EQ. 0) THEN
       ! FIRST RUN WAS VAPOUR; RERUN FOR LIQUID
       IF (FIRST_RUN) THEN
