@@ -110,7 +110,7 @@ subroutine flash(spec, FIRST, model, n, z, tcn, pcn, omgn, acn, bn, k_or_mn, del
 !            if(spec=='TP'.and.T/=Told)      LOG_K = AUXK + (AUXK - LOG_K2)*(T-Told)/(Told-Told2)
 !            KFACT = EXP(LOG_K)
         end if
-        LOG_K2 = AUXK
+        LOG_K2(:n) = AUXK
         Pold2 = Pold
         Pold = P
         Told2 = Told
