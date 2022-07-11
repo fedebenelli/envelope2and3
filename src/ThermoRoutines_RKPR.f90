@@ -535,8 +535,8 @@ SUBROUTINE VCALC(ITYP, nc, NTEMP, rn, T, P, V)
    ITER = 0
 
    ZETMIN = 0.D0
-   ZETMAX = 1.D0-0.01*T/500        !.99D0  This is flexible for low T (V very close to B)
-   !ZETMAX = 1.D0 - 0.01*T/(10000*B)  ! improvement for cases with heavy components
+   !ZETMAX = 1.D0-0.01*T/5000        !.99D0  This is flexible for low T (V very close to B)
+   ZETMAX = 1.D0 - 0.01*T/(10000*B)  ! improvement for cases with heavy components
    IF (ITYP .GT. 0) THEN
       ZETA = .5D0
    ELSE
