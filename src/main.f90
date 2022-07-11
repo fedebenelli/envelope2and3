@@ -385,9 +385,9 @@ subroutine WriteEnvel(n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
 end subroutine WriteEnvel
 
 subroutine CheckCross(XpairA, YpairA, XpairB, YpairB, Cross, Xcr, Ycr)
-    ! For given consecutive pairs of points along two different curves A and B, this subroutine:
-    ! 1) Finds the straight line equation connecting each pair of points ( Y = c*X + d )
-    ! 2) Determines whether there is a crossing between the two segments
+!   For given consecutive pairs of points along two different curves A and B, this subroutine:
+!   1) Finds the straight line equation connecting each pair of points ( Y = c*X + d )
+!   2) Determines whether there is a crossing between the two segments
     implicit DOUBLE PRECISION(A - H, O - Z)
     DOUBLE PRECISION, dimension(2) :: XpairA, YpairA, XpairB, YpairB
     logical :: run, passingcri, Cross
