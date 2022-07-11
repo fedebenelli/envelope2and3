@@ -7,6 +7,13 @@
 !        COMMON /bcross/bij(nco,nco)
 !        COMMON /Tdep/ Kinf,Tstar
 
+module dtypes
+   type :: envelope
+      real(8), allocatable :: t(:)
+      real(8), allocatable :: p(:)
+      real(8), allocatable :: logk(:, :)
+   end type envelope
+
 program calc_envelope2and3
     use file_operations, only: outfile, out_i
     implicit DOUBLE PRECISION(A - H, O - Z)
