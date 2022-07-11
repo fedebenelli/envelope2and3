@@ -1,4 +1,3 @@
-
 ! Listado de commons utilizados, que podrían pasar a un módulo:
 !   COMMON /CRIT/TC(nco),PC(nco),DCeos(nco),omg(nco)
 !        COMMON /COMPONENTS/ ac(nco),b(nco),delta1(nco),rk(nco),Kij_or_K0,NTDEP
