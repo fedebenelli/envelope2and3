@@ -508,6 +508,7 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
     Kinf = 0.0d0
     ncomb = 0  ! only  vdW combining rules and quadratic mixing rules by  the moment
     Tstar(:n, :n) = Tstarn
+
     ! b matrix for Classical or van der Waals combining rules:
     do i = 1, n
         do j = i, n
@@ -515,8 +516,8 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
             bij(j, i) = bij(i, j)
         end do
     end do
+   !
     !-----------------------------------------------------------
-
     ! Continuation method for tracing the envelope starts here
     run = .true.
     i = 0
@@ -547,6 +548,7 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
     Xold = 0.d0
     dFdS = 0.d0
     dFdS(n + 2) = -1.d0
+
     do while (run)
         i = i + 1
         ! Newton starts here
@@ -573,7 +575,9 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
             bd = -F
             AJ = JAC
             call dgesv(n + 2, 1, AJ, lda, ipiv, bd, ldb, info)
-            if (info .ne. 0) write (6, *) "error with dgesv in parameter ", info
+         if (info .ne. 0) then
+            print *, "error with dgesv in parameter ", info, "540"
+         end if
             delX = bd
             if (i == 1) then
                 do while (maxval(abs(delX)) > 5.0)   ! Too large Newton step --> Reduce it
@@ -585,6 +589,7 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
                 end do
                 if (iter > 8) delX = delX/2  ! too many iterations (sometimes due to oscillatory behavior near crit) --> Reduce it
             end if
+
             X = X + delX
             if (.not. passingcri .and. i /= 1 .and. iter == 8 .and. maxval(abs(delX)) > 0.001) then ! Too many iterations-->Reduce step to new point
                 delS = delS/2
@@ -794,13 +799,16 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
             iy = -iy
             ix = -yx
         end if
+
         if (run) then
             ! Calculation of sensitivities (dXdS)
             ! dgesv( n, nrhs, a, lda, ipiv, b, ldb, info )
             bd = -dFdS
             AJ = JAC
             call dgesv(n + 2, 1, AJ, lda, ipiv, bd, ldb, info)
-            if (info .ne. 0) write (6, *) "error with dgesv in parameter ", info
+         if (info .ne. 0) then
+            print *, "error with dgesv in parameter ", info, "760"
+         end if
             dXdS = bd
             ! Selection of (the most changing) variable to be specified for the next point
             nsold = ns
@@ -841,6 +849,7 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
                     X = X + dXdS*delS   ! one more step to jump over the critical point
                 end if
             end do
+
             T = exp(X(n + 1))
             if (.not. passingcri .and. abs(T - Told) > 7) then ! Delta T estimations > 7K are not allowed
                 delS = delS/2
@@ -848,6 +857,7 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
                 X = Xold + dXdS*delS
                 T = exp(X(n + 1))
             end if
+
             P = exp(X(n + 2))
             KFACT = exp(X(:n))
             y = z*KFACT
@@ -859,6 +869,7 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
             end if
         end if
     end do
+
     n_points = i
     !-----------------------------------------------------------
    this_envelope%logk = tmp_logk(:n_points, :)
@@ -967,8 +978,8 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
     COMMON/Tdep/Kinf, Tstar
     COMMON/lowTKsep/KFsep1
     COMMON/writeComp/Comp3ph, i1, i2
-!            COMMON /DewCurve/ ilastDewC, TdewC(500), PdewC(500)     ! crossing vars
-!        COMMON /CrossingPoints/ Tcr1,Pcr1,Tcr2,Pcr2,KFcr1,Kscr1,KFcr2,Kscr2
+   ! COMMON /DewCurve/ ilastDewC, TdewC(500), PdewC(500)     ! crossing vars
+   ! COMMON /CrossingPoints/ Tcr1,Pcr1,Tcr2,Pcr2,KFcr1,Kscr1,KFcr2,Kscr2
 
 ! Charging the commons(nco) from input arguments (n)
     NMODEL = model
@@ -983,6 +994,7 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
     Kinf = 0.0d0
     ncomb = 0  ! only  vdW combining rules and quadratic mixing rules by  the moment
     Tstar(:n, :n) = Tstarn
+
     ! b matrix for Classical or van der Waals combining rules:
     do i = 1, n
         do j = i, n
@@ -1005,15 +1017,19 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
     X(2*n + 1) = log(T)
     X(2*n + 2) = log(P)
     X(2*n + 3) = beta
+
 !
-!   To test Jacobian insert here block for numerical derivatives at the end of this code
+   ! To test Jacobian insert here block for numerical derivatives at the end of this code
 !
+
     iy = 1
     ix = 1
     iw = 1
+
     if (ichoice == 1) iy = -1
     if (ichoice == 2) iw = -1  ! w will be vapor phase during the first part
     if (ichoice == 3) ix = -1  ! x will be vapor phase, saturated in the first point
+
     if (beta == 0.0d0) then
         ns = 2*n + 3
         S = 0.00   ! for beta
@@ -1023,6 +1039,7 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
         S = X(2*n + 1)   ! for log(T)
         delS = 0.001
     end if
+
     xx = z/(1 - beta + beta*KFsep)
     y = KFACT*xx
     w = KFsep*xx
@@ -1031,6 +1048,7 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
     dFdS(2*n + 3) = -1.d0
     write (2, *) '     T       P      beta     X(1)     X(n)     X(n+1)     X(2*n)    ns  iter'
     if (Comp3ph) write (3, *) '     T       P      beta     xa     xb     ya     yb    wa     wb'
+
     do while (run)
         i = i + 1  ! number of point to be calculated along the line
         ! Newton starts here
@@ -1038,7 +1056,7 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
         iter = 0
         do while (maxval(abs(delX)) > 1.d-5 .and. iter <= 70)
             iter = iter + 1
-            !      nc,MTYP,INDIC,T,P,rn,V,PHILOG,DLPHI,DLPHIP,DLPHIT,FUGN
+         ! nc,MTYP,INDIC,T,P,rn,V,PHILOG,DLPHI,DLPHIP,DLPHIT,FUGN
             call TERMO(n, iy, 4, T, P, y, Vy, PHILOGy, DLPHIPy, DLPHITy, FUGNy)
             call TERMO(n, ix, 4, T, P, xx, Vx, PHILOGx, DLPHIPx, DLPHITx, FUGNx)
             call TERMO(n, iw, 4, T, P, w, Vw, PHILOGw, DLPHIPw, DLPHITw, FUGNw)
@@ -1054,28 +1072,37 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
             dxdKs = aux*xx
             dydKs = aux*y
             dwdKs = xx*(1 + aux*KFsep)
+
             do j = 1, n
                 JAC(1:n, j) = FUGNy(:, j)*y(j)  ! y=K*xx
                 JAC(j, j) = JAC(j, j) + 1.d0
             end do
+
             do j = n + 1, 2*n    ! wrt Ks
                 JAC(1:n, j) = KFsep(j - n)*(FUGNy(:, j - n)*dydKs(j - n) - FUGNx(:, j - n)*dxdKs(j - n))
             end do
+
             JAC(1:n, 2*n + 1) = T*(DLPHITy - DLPHITx)  ! wrt T
             JAC(1:n, 2*n + 2) = P*(DLPHIPy - DLPHIPx)  ! wrt P
+
             do l = 1, n    ! wrt beta
                 JAC(l, 2*n + 3) = sum(FUGNy(l, :)*dydB - FUGNx(l, :)*dxdB)
             end do
+
             ! ders of F(n+1:2*n) wrt K = 0
+
             do j = n + 1, 2*n  ! wrt Ks
                 JAC(n + 1:2*n, j) = KFsep(j - n)*(FUGNw(:, j - n)*dwdKs(j - n) - FUGNx(:, j - n)*dxdKs(j - n))
                 JAC(j, j) = JAC(j, j) + 1.d0
             end do
+
             JAC(n + 1:2*n, 2*n + 1) = T*(DLPHITw - DLPHITx)  ! wrt T
             JAC(n + 1:2*n, 2*n + 2) = P*(DLPHIPw - DLPHIPx)  ! wrt P
+
             do l = n + 1, 2*n    ! wrt beta
                 JAC(l, 2*n + 3) = sum(FUGNw(l - n, :)*dwdB - FUGNx(l - n, :)*dxdB)
             end do
+
             JAC(2*n + 1, 1:n) = y             ! sum(y-x) wrt K
             JAC(2*n + 1, n + 1:2*n) = KFsep*(dydKs - dxdKs)    ! sum(y-x) wrt Ks
             ! sum(y-x) wrt T or P = 0
@@ -1087,21 +1114,18 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
             JAC(2*n + 3, :) = 0.d0
             JAC(2*n + 3, ns) = 1.d0
 
-!   After JAC calculated, print to compare with numerical values:
-!        write(2,*)'JACK2:  ',JAC(:,2)
-!        write(2,*)'JACKn:  ',JAC(:,n)
-!        write(2,*)'JACKs2: ',JAC(:,n+2)
-!        write(2,*)'JACKsn: ',JAC(:,2*n)
-!        write(2,*)'JAClT:  ',JAC(:,2*n+1)
-!        write(2,*)'JAClP:  ',JAC(:,2*n+2)
-!        write(2,*)'JACB:   ',JAC(:,2*n+3)
-
-!               call dgesv( n, nrhs, a, lda, ipiv, b, ldb, info )
             bd = -F
             AJ = JAC
+
             call dgesv(2*n + 3, 1, AJ, lda, ipiv, bd, ldb, info)
-            if (info .ne. 0) write (6, *) "error with dgesv in parameter ", info
+
+         if (info .ne. 0) then
+            print *, "error with dgesv in parameter ", info
+            print *, "error at", T, P
+         end if
+
             delX = bd
+
             if (i == 1) then
                 do while (maxval(abs(delX)) > 1.0)   ! Too large Newton step --> Reduce it
                     delX = delX/2
@@ -1119,6 +1143,7 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
                 X = Xold + dXdS*delS
                 iter = 0
             end if
+
             KFACT = exp(X(:n))
             KFsep = exp(X(n + 1:2*n))
             T = exp(X(2*n + 1))
@@ -1132,13 +1157,15 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
         if (iter > 70) run = .false.
         if (beta < 0) run = .false.
         if (ichoice == 1 .and. i == 1) KFsep1(1:n) = KFsep
+
         print *, T, P, ns, iter
         write (2, 1) T, P, beta, X(1), X(n), X(n + 1), X(2*n), ns, iter
         if (Comp3ph) write (3, 3) T, P, beta, xx(i1), xx(i2), y(i1), y(i2), w(i1), w(i2)
         Tv(i) = T
         Pv(i) = P
         Dv(i) = 1/Vx    ! saturated phase density
-!            rho_y = 1/Vy     incipient phase density
+      rho_x = 1/Vx
+      rho_y = 1/Vy    ! incipient phase density
         if (sum(X(:n)*Xold(:n)) < 0) then  ! critical point detected between x and y phases
             ncri = ncri + 1
             icri(ncri) = i - 1
@@ -1160,14 +1187,16 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
             ix = -yx
         end if
         if (run) then
-!       Calculation of sensitivities (dXdS)
-!           dgesv( n, nrhs, a, lda, ipiv, b, ldb, info )
+         ! Calculation of sensitivities (dXdS)
+         ! dgesv( n, nrhs, a, lda, ipiv, b, ldb, info )
             bd = -dFdS
             AJ = JAC
             call dgesv(2*n + 3, 1, AJ, lda, ipiv, bd, ldb, info)
-            if (info .ne. 0) write (6, *) "error with dgesv in parameter ", info
+         if (info .ne. 0) then
+            print *, "error with dgesv in parameter ", info, "1125"
+         end if
             dXdS = bd
-!       Selection of (the most changing) variable to be specified for the next point
+         ! Selection of (the most changing) variable to be specified for the next point
             nsold = ns
             ns = maxloc(abs(dXdS), DIM=1)
             if (maxval(abs(X(:n))) < 0.2) then
@@ -1178,10 +1207,10 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
             end if
             if (ns /= nsold) then
                 delS = dXdS(ns)*delS    ! translation of delS to the  new specification variable
-                dXdS = dXdS/dXdS(ns)  ! translation of sensitivities
+            dXdS = dXdS/dXdS(ns)    ! translation of sensitivities
                 S = X(ns)               ! update of S
             end if
-!       Setting step in S for the next point to be calculated
+         ! Setting step in S for the next point to be calculated
             delmax = max(sqrt(abs(X(ns)))/10, 0.1)
             updel = delS*3/iter
             if (passingcri) updel = delS
@@ -1191,22 +1220,24 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
                 delS = max(updel, -delmax)
             end if
             S = S + delS
-!       Generation of estimates for the next point
+         ! Generation of estimates for the next point
             Told = T
             Xold = X
             X = Xold + dXdS*delS
             if (passingcri) passingcri = .false.
-!                do while (maxval(abs(X(:n)))<0.03)  ! approaching the black hole... get out of there! (0.03)
-!                        stepX = maxval(abs(X(:n)-Xold(:n))) ! the step given by the most changing logK to fall into the black hole
-!                        passingcri = .true.
-!                        if (stepX > 0.07) then
-!                            S = S - delS/2
-!                        X = X - dXdS * delS/2   !  half step back
-!                        else
-!                            S = S + delS
-!                        X = X + dXdS * delS   ! one more step to jump over the critical point
-!                    end if
-!                end do
+
+         ! do while (maxval(abs(X(:n)))<0.03)  ! approaching the black hole... get out of there! (0.03)
+         !       stepX = maxval(abs(X(:n)-Xold(:n))) ! the step given by the most changing logK to fall into the black hole
+         !       passingcri = .true.
+         !       if (stepX > 0.07) then
+         !           S = S - delS/2
+         !           X = X - dXdS * delS/2   !  half step back
+         !       else
+         !           S = S + delS
+         !           X = X + dXdS * delS   ! one more step to jump over the critical point
+         !       end if
+         ! end do
+
             if (maxval(abs(X(:n))) < 0.03) then  ! approaching the black hole... get out of there!
                 if (delS > 0) delS = 0.04 - S
                 if (delS < 0) delS = -0.04 - S
@@ -1225,7 +1256,9 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
                     X = X + dXdS*delS   ! one more step to jump over the critical point
                 end if
             end do
+
             T = exp(X(2*n + 1))
+
             if (.not. passingcri .and. abs(T - Told) > 7) then ! Delta T estimations > 7K are not allowed
                 delS = delS/2
                 S = S - delS
@@ -1254,11 +1287,12 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
     print *, rho_x
     print *, rho_y
     print *, beta
-1   FORMAT(7F10.4, 2I4)
-3   FORMAT(3F10.4, 6E12.3)
+1  FORMAT(7F10.4, 2I4)
+3  FORMAT(3F10.4, 6E12.3)
 end subroutine envelope3
 
 subroutine EvalFEnvel3(n, z, X, F)
+
     implicit DOUBLE PRECISION(A - H, O - Z)
     DOUBLE PRECISION, dimension(n) :: KFACT, KFsep
     DOUBLE PRECISION, dimension(n) :: z, y, xx, w, PHILOGy, PHILOGx, PHILOGw
