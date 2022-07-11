@@ -83,7 +83,7 @@ contains
               xup = min(maxval(xpair_1), maxval(xpair_2))
               ylow = max(minval(ypair_1), minval(ypair_2))
               yup = min(maxval(ypair_1), maxval(ypair_2))
-     
+
               if ( &
                  (xlow <= x_cross) .and. (x_cross <= xup) .and. &
                  (ylow <= y_cross) .and. (y_cross <= yup) &
