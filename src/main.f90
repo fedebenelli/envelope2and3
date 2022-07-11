@@ -34,7 +34,6 @@ end module dtypes
 
 
 program calc_envelope2and3
-    use file_operations, only: outfile, out_i
     implicit DOUBLE PRECISION(A - H, O - Z)
     LOGICAL Comp3ph
     COMMON/writeComp/Comp3ph, i1, i2
@@ -44,6 +43,7 @@ program calc_envelope2and3
     !write (6, *) 'write extra output with compositions for 2 compounds along 3-phase lines?'
     !write (6, *) 'Enter 1 for YES. Otherwise, any other number.'
     ! read (5, *) i
+
     i = 0
     
     if (i == 1) Comp3ph = .true.
