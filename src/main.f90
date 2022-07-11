@@ -72,8 +72,9 @@ program calc_envelope2and3
 END program
 
 subroutine readcase(n)
-   use dtypes, only: envelope, kfcross
-   use array_operations, only: find_cross, wp
+   use constants
+   use dtypes, only: envelope, kfcross, cross
+   use array_operations, only: find_cross
    implicit DOUBLE PRECISION(A - H, O - Z)
    PARAMETER(nco=64, Pmax=700.0)
    dimension z(n), xx(n), w(n)
@@ -121,7 +122,7 @@ subroutine readcase(n)
    DOUBLE PRECISION, dimension(n) :: DLPHITx, DLPHIPx, DLPHITy, DLPHIPy
    DOUBLE PRECISION, dimension(n, n) :: FUGNx, FUGNy
 
-   real(wp), allocatable :: cross(:, :)
+   type(cross), allocatable :: crossings(:)
 
    CHARACTER*4 :: spec
    LOGICAL FIRST
@@ -213,25 +214,25 @@ subroutine readcase(n)
       ! Find the cross between two lines (in this case, dew envelope and
       ! (starting from) low temperature bubble envelope
       call find_cross(dew_envelope%t, low_t_envelope%t, &
-                      dew_envelope%p, low_t_envelope%p, cross)
+                      dew_envelope%p, low_t_envelope%p, crossings)
 
       ! Left Cross (since the search is made from the dew line, the right cross
       !             will be found first, but keeping the 1 and 2 naming for
       !             compatibility, should be fixed after standarizing)
-      Tcr1 = cross(2, 1)
-      Pcr1 = cross(2, 2)
-      icross = int(cross(2, 3))
-      jcross = int(cross(2, 4))
+      Tcr1 = crossings(2)%x
+      Pcr1 = crossings(2)%y
+      icross = crossings(2)%i
+      jcross = crossings(2)%j
 
       ! New Kfactors interpolated for the Left cross
       kfcr1 = kfcross(jcross, low_t_envelope%t, low_t_envelope%logk, Tcr1)
       kscr1 = kfcross(icross, dew_envelope%t, dew_envelope%logk, Tcr1)
 
       ! Right cross
-      Tcr2 = cross(1, 1)
-      Pcr2 = cross(1, 2)
-      icross = int(cross(1, 3))
-      jcross = int(cross(1, 4))
+      Tcr2 = crossings(1)%x
+      Pcr2 = crossings(1)%y
+      icross = crossings(1)%i
+      jcross = crossings(1)%j
 
       ! New Kfactors interpolated for the right cross
       kfcr2 = kfcross(jcross, low_t_envelope%t, low_t_envelope%logk, Tcr2)
@@ -277,11 +278,11 @@ subroutine readcase(n)
 
          ! Find cross between high P LL and bubble
          call find_cross(high_p_envelope%t, low_t_envelope%t, &
-                         high_p_envelope%p, low_t_envelope%p, cross)
-         Tcr1 = cross(1, 1)
-         Pcr1 = cross(1, 2)
-         icross = int(cross(1, 3))
-         jcross = int(cross(1, 4))
+                         high_p_envelope%p, low_t_envelope%p, crossings)
+         Tcr1 = crossings(1)%x
+         Pcr1 = crossings(1)%y
+         icross = crossings(1)%i
+         jcross = crossings(1)%j
 
          ! New Kfactors interpolated for the Left cross
          kfcr1 = kfcross(jcross, low_t_envelope%t, low_t_envelope%logk, Tcr1)
@@ -289,11 +290,11 @@ subroutine readcase(n)
          
          ! Find cross between dew and bubble
          call find_cross(dew_envelope%t, low_t_envelope%t, &
-                         dew_envelope%p, low_t_envelope%p, cross)
-         Tcr2 = cross(1, 1)
-         Pcr2 = cross(1, 2)
-         icross = int(cross(1, 3))
-         jcross = int(cross(1, 4))
+                         dew_envelope%p, low_t_envelope%p, crossings)
+         Tcr2 = crossings(2)%x
+         Pcr2 = crossings(2)%y
+         icross = crossings(2)%i
+         jcross = crossings(2)%j
 
          ! New Kfactors interpolated for the right cross
          kfcr2 = kfcross(jcross, low_t_envelope%t, low_t_envelope%logk, Tcr2)

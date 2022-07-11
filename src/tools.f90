@@ -17,39 +17,38 @@ module file_operations
 end module
 
 module array_operations
+    use constants
     implicit none
 
-    integer, parameter :: wp = 16
+    contains
 
-
-contains
-
-    subroutine find_cross(tv1, tv2, pv1, pv2, cross)
+    subroutine find_cross(tv1, tv2, pv1, pv2, crossings)
+      use dtypes, only: cross
         !! Find crossings between two given lines
         !! 
-        !! Returns a nx4 matrix, with n the number of cross found. Each row
+        !! Returns an array of crossigns, containings the crosses found. Each row
         !! contains the data from each found cross
         !!
         !!  | --------| ------- | ---------------- | ----------------- |
         !!  | x_cross | y_cross | first_line_index | second_line_index |
         !!  | --------| ------- | ---------------- | ----------------- |
-
+        !!  
         
         real(8), allocatable, intent(in)  :: tv1(:)  !! First line x values
         real(8), allocatable, intent(in)  :: tv2(:)  !! Second line x values
         real(8), allocatable, intent(in)  :: pv1(:)  !! First line y values
         real(8), allocatable, intent(in)  :: pv2(:)  !! Second line y values
 
-        real(wp), allocatable, intent(out) :: cross(:, :) !! Found crossings matrix
+        type(cross), allocatable :: crossings(:) !! Array of crossings
+        type(cross) :: current_cross
      
         real(wp) :: x11, x12, x21, x22, y11, y12, y21, y22
      
         real(wp) :: x_cross, y_cross, m1, b1, m2, b2, xlow, xup, ylow, yup
         real(wp), dimension(2) :: xpair_1, xpair_2, ypair_1, ypair_2
         integer :: i, j, n
-        real(wp), allocatable :: new_row(:)
-     
-        allocate(cross(0, 4))
+
+        allocate(crossings(2))
         n = 0
         
         do i = 2, size(tv1)                  
@@ -89,14 +88,15 @@ contains
                  (ylow <= y_cross) .and. (y_cross <= yup) &
                  ) then
                  print *, "CROSS:", i, j, x_cross, y_cross
-                 if ( (abs(x_cross - cross(n, 1)) < 0.1) .and. &
-                      (abs(y_cross - cross(n, 2)) < 0.1)) then
+                 if ( (abs(x_cross - crossings(n)%x) < 0.1) .and. &
+                      (abs(y_cross - crossings(n)%y) < 0.1)) then
                         print *, "CROSS: Repeated cross, skipping..."
                         cycle
                  end if
-                 new_row = [x_cross, y_cross, real(i, wp), real(j, wp)]
+                 current_cross = cross(x_cross, y_cross, i, j)
                  n = n + 1
-                 call append_2d(cross, new_row)
+
+                 crossings(n) = current_cross
               end if
 
            end do
