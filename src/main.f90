@@ -185,8 +185,47 @@ subroutine readcase(n)
         end do
         KFACT = PCn*EXP(5.373*(1 + omgn)*(1 - TCn/T))/P
         call envelope2(ichoice, nmodel, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn, k_or_mn, delta1n, &
-                       Kij_or_K0n, Tstarn, Lijn, n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
+                     Kij_or_K0n, Tstarn, Lijn, n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri, low_t_envelope)
         call WriteEnvel(n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
+
+      ! ========================================================================
+      !  Crossings finding
+      !   To find the crossings between envelopes a generic cross finding
+      !   subroutine is called. After the... crosses? have been found,
+      !   the K-Factors of each envelope (and each cross) are calculated
+      !   with an interpolation based on temperature.
+      !
+
+      ! Find the cross between two lines (in this case, dew envelope and
+      ! (starting from) low temperature bubble envelope
+      call find_cross(dew_envelope%t, low_t_envelope%t, &
+                      dew_envelope%p, low_t_envelope%p, cross)
+
+      
+      ! Left Cross (since the search is made from the dew line, the right cross
+      !             will be found first, but keeping the 1 and 2 naming for 
+      !             compatibility, should be fixed after standarizing)
+      Tcr1 = cross(2, 1)
+      Pcr1 = cross(2, 2)
+      icross = int(cross(2, 3))
+      jcross = int(cross(2, 4))
+
+      ! New Kfactors interpolated for the Left cross
+      kfcr1 = kfcross(jcross, low_t_envelope%t, low_t_envelope%logk, Tcr1)
+      kscr1 = kfcross(icross, dew_envelope%t, dew_envelope%logk, Tcr1)
+
+      ! Right cross
+      Tcr2 = cross(1, 1)
+      Pcr2 = cross(1, 2)
+      icross = int(cross(1, 3))
+      jcross = int(cross(1, 4))
+
+      ! New Kfactors interpolated for the right cross
+      kfcr2 = kfcross(jcross, low_t_envelope%t, low_t_envelope%logk, Tcr2)
+      kscr2= kfcross(icross, dew_envelope%t, dew_envelope%logk, Tcr2)
+      ! ========================================================================
+      
+      
     ELSE  ! now run from High P L-L saturation (incipient phase rich in last comp.)
         ichoice = 3
         P = Pmax
