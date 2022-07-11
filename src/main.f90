@@ -13,11 +13,21 @@ end module constants
 
 
 module dtypes
+   use constants
+   implicit none
+
    type :: envelope
       real(8), allocatable :: t(:)
       real(8), allocatable :: p(:)
       real(8), allocatable :: logk(:, :)
    end type envelope
+
+   type :: cross
+      real(wp) :: x
+      real(wp) :: y
+      integer :: i
+      integer :: j
+   end type cross
 
 contains
 
