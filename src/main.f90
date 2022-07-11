@@ -58,7 +58,10 @@ program calc_envelope2and3
 
 END program
 
+
 subroutine readcase(n)
+   use dtypes, only: envelope, kfcross
+   use array_operations, only: find_cross
     implicit DOUBLE PRECISION(A - H, O - Z)
     PARAMETER(nco=64, Pmax=700.0)
     dimension z(n), xx(n), w(n)
@@ -121,6 +124,8 @@ subroutine readcase(n)
     COMMON/lowTbub/TlowT, PlowT, KlowT, PHILOGxlowT !shared with envelope2
     COMMON/lowTKsep/KFsep1     !shared with envelope3
     
+   type(envelope) :: dew_envelope, low_t_envelope, high_p_envelope
+
     Tcr1 = 0.d0 ! T of 1st crossing point detected between different envelope segments
     Tcr2 = 0.d0
     READ (1, *) (z(j), j=1, N)
@@ -161,7 +166,7 @@ subroutine readcase(n)
     KFACT = 1.d0/KFACT  ! inversion
 
     call envelope2(ichoice, nmodel, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn, k_or_mn, delta1n, &
-                   Kij_or_K0n, Tstarn, Lijn, n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
+                  Kij_or_K0n, Tstarn, Lijn, n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri, dew_envelope)
     call WriteEnvel(n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
     TdewC = Tv
     PdewC = Pv
@@ -202,8 +207,10 @@ subroutine readcase(n)
         KFACT = 1.D-3
         KFACT(n) = 1/z(n)
         call envelope2(ichoice, nmodel, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn, k_or_mn, delta1n, &
-                       Kij_or_K0n, Tstarn, Lijn, n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
+                     Kij_or_K0n, Tstarn, Lijn, n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri, high_p_envelope)
         call WriteEnvel(n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
+         call envelope2(ichoice, nmodel, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn, k_or_mn, delta1n, &
+                        Kij_or_K0n, Tstarn, Lijn, n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri, low_t_envelope)
     END IF
 
     if (Tcr1 == 0.0d0) then ! no crossings
@@ -472,6 +479,9 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
     COMMON/DewCurve/ilastDewC, TdewC(800), PdewC(800), dewK(800, nco)
     COMMON/CrossingPoints/Tcr1, Pcr1, Tcr2, Pcr2, KFcr1, Kscr1, KFcr2, Kscr2
     COMMON/lowTbub/TlowT, PlowT, KlowT, PHILOGxlowT
+
+   real(8) :: tmp_logk(800, n)
+   type(envelope) :: this_envelope
 
     minT = .false.
     minmaxT = .false.
@@ -757,7 +767,9 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
         Tv(i) = T
         Pv(i) = P
         Dv(i) = 1/Vx    ! saturated phase density
-!            rho_y = 1/Vy     incipient phase density
+      
+      tmp_logk(i, :n) = X(:n)
+      ! rho_y = 1/Vy     incipient phase density
         if (sum(X(:n)*Xold(:n)) < 0) then  ! critical point detected
             ncri = ncri + 1
             icri(ncri) = i - 1
@@ -835,6 +847,9 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
     end do
     n_points = i
     !-----------------------------------------------------------
+   this_envelope%logk = tmp_logk(:n_points, :)
+   this_envelope%t = Tv(:n_points)
+   this_envelope%p = Pv(:n_points)
 
     print *, y
     print *, rho_x
