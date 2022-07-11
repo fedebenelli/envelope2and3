@@ -14,6 +14,25 @@ module dtypes
       real(8), allocatable :: logk(:, :)
    end type envelope
 
+contains
+
+   function kfcross(i, t_values, logk, target_t)
+      real(8), allocatable :: kfcross(:)
+      integer, intent(in) :: i
+      real(8), allocatable, intent(in) :: t_values(:)
+      real(8), allocatable, intent(in) :: logk(:, :)
+      real(8), intent(in) :: target_t
+      
+      kfcross = (logk(i, :) - logk(i - 1, :)) &
+            / (t_values(i) - t_values(i - 1)) &
+            * (target_t - t_values(i - 1)) & 
+            + logk(i - 1, :)
+   end function
+
+end module dtypes
+
+
+
 program calc_envelope2and3
     use file_operations, only: outfile, out_i
     implicit DOUBLE PRECISION(A - H, O - Z)
