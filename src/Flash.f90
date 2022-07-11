@@ -82,7 +82,7 @@ subroutine flash(spec, FIRST, model, n, z, tcn, pcn, omgn, acn, bn, k_or_mn, del
 		        bij(j,i)=bij(i,j)
 		    end do
 		end do
-!
+        !
         !-----------------------------------------------------------
         ! This algorithm assumes that the specified T and P correspond to
         ! vapor-liquid separation predicted by the provided model (0<beta<1)
