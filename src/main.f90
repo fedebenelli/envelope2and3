@@ -237,7 +237,10 @@ subroutine readcase(n)
       end if
     END IF
 
-    if (Tcr1 == 0.0d0) then ! no crossings
+   print *, Tcr1, Pcr1, "cross1"
+   print *, Tcr2, Pcr2, "cross2"
+
+      print *, "no cross found"
         ichoice = 1   ! first inner curve: 3-phase bubble curve (incipient: V)
         T = TlowT
         P = PlowT
@@ -318,6 +321,7 @@ subroutine readcase(n)
 
     else  ! at least one crossing
         if (ichoice /= 3) ichoice = 1
+      print *, "at least one cross", Tcr1, Pcr1
         T = Tcr1
         P = Pcr1
         beta = 0.0d0
@@ -338,7 +342,7 @@ subroutine readcase(n)
         call WriteEnvel(n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
     end if
 
-    if (Tcr2 > 0) then
+      print *, "second cross", Tcr2, Pcr2
         ichoice = 1
         T = Tcr2
         P = Pcr2
@@ -359,6 +363,7 @@ subroutine readcase(n)
                        Kij_or_K0n, Tstarn, Lijn, n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
         call WriteEnvel(n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
     end if
+
 end subroutine readcase
 
 
