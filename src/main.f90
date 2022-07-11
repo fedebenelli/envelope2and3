@@ -5,6 +5,12 @@
 !        COMMON /rule/ncomb
 !        COMMON /bcross/bij(nco,nco)
 !        COMMON /Tdep/ Kinf,Tstar
+module constants
+   implicit none
+
+   integer, parameter :: wp = 16
+end module constants
+
 
 module dtypes
    type :: envelope
