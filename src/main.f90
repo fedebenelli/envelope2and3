@@ -683,9 +683,11 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
                     end if
                 end do
             else ! search for 2nd crossing with dew curve coming from high P
+
                 do while (TdewC(iD) < Tv(i - 1))
                     iD = iD - 1
                 end do
+
                 if (abs(PdewC(iD) - P) < 20) then
                     TpairA = [TdewC(iD + 1), TdewC(iD)]
                     PpairA = [PdewC(iD + 1), PdewC(iD)]
@@ -699,9 +701,10 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
                         Kscr2(1:n) = dewK(iD, :n) + (dewK(iD + 1, :n) - dewK(iD, :n))*(Tcr - TpairA(2))/(TpairA(1) - TpairA(2))
                         T = Tcr2
                         P = Pcr2
-                        run = .false.
+                  ! run = .false.
                     end if
                 end if
+
                 do while (run .and. TdewC(iD) < T)  !  in case the previous check was not yet for the right segment
                     iD = iD - 1
                     if (abs(PdewC(iD) - P) < 20) then
@@ -717,10 +720,11 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
                             Kscr2(1:n) = dewK(iD, :n) + (dewK(iD + 1, :n) - dewK(iD, :n))*(Tcr - TpairA(2))/(TpairA(1) - TpairA(2))
                             T = Tcr2
                             P = Pcr2
-                            run = .false.
+                     ! run = .false.
                         end if
                     end if
                 end do
+
             end if
         else if (ichoice == 3 .and. P < PmaxDewC) then ! search for crossing with dew curve, coming from high P L-L sat
             iD = ilastDewC
@@ -740,9 +744,10 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
                     KFcr1(1:n) = dewK(iD, :n) + (dewK(iD + 1, :n) - dewK(iD, :n))*(Tcr - TpairA(2))/(TpairA(1) - TpairA(2))
                     T = Tcr
                     P = Pcr
-                    run = .false.
+               ! run = .false.
                 end if
             end if
+
             do while (run .and. TdewC(iD) < Tv(i - 1))  !  in case the previous check was not yet for the right segment
                 iD = iD - 1
                 if (abs(PdewC(iD) - P) < 30) then
@@ -758,11 +763,13 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
                         KFcr1(1:n) = dewK(iD, :n) + (dewK(iD + 1, :n) - dewK(iD, :n))*(Tcr - TpairA(2))/(TpairA(1) - TpairA(2))
                         T = Tcr
                         P = Pcr
-                        run = .false.
+                  ! run = .false.
                     end if
                 end if
             end do
+
         end if
+
         print *, T, P, ns, iter
         Tv(i) = T
         Pv(i) = P
