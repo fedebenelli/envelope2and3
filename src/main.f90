@@ -325,8 +325,8 @@ subroutine readcase(n)
         T = Tcr1
         P = Pcr1
         beta = 0.0d0
-        KFACT = exp(KFcr1)
-        KFsep = exp(Kscr1)
+      KFACT = exp(KFcr1(:n))
+      KFsep = exp(Kscr1(:n))
         call envelope3(ichoice, nmodel, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, omgn, acn, bn, k_or_mn, delta1n, &
                        Kij_or_K0n, Tstarn, Lijn, n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
         call WriteEnvel(n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
@@ -335,8 +335,8 @@ subroutine readcase(n)
         T = Tcr1
         P = Pcr1
         beta = 0.0d0
-        KFACT = exp(Kscr1) ! now y (incipient phase in envelope3) will be the second liquid
-        KFsep = exp(KFcr1) ! w will be vapor, with phase fraction beta
+      KFACT = exp(Kscr1(:n)) ! now y (incipient phase in envelope3) will be the second liquid
+      KFsep = exp(KFcr1(:n)) ! w will be vapor, with phase fraction beta
         call envelope3(ichoice, nmodel, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, omgn, acn, bn, k_or_mn, delta1n, &
                        Kij_or_K0n, Tstarn, Lijn, n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
         call WriteEnvel(n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
@@ -347,8 +347,8 @@ subroutine readcase(n)
         T = Tcr2
         P = Pcr2
         beta = 0.0d0
-        KFACT = exp(KFcr2)
-        KFsep = exp(Kscr2)
+      KFACT = exp(KFcr2(:n))
+      KFsep = exp(Kscr2(:n))
         call envelope3(ichoice, nmodel, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, omgn, acn, bn, k_or_mn, delta1n, &
                        Kij_or_K0n, Tstarn, Lijn, n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
         call WriteEnvel(n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
@@ -357,8 +357,8 @@ subroutine readcase(n)
         T = Tcr2
         P = Pcr2
         beta = 0.0d0
-        KFACT = exp(Kscr2) ! now y (incipient phase in envelope3) will be the second liquid
-        KFsep = exp(KFcr2) ! w will be vapor, with phase fraction beta
+      KFACT = exp(Kscr2(:n)) ! now y (incipient phase in envelope3) will be the second liquid
+      KFsep = exp(KFcr2(:n)) ! w will be vapor, with phase fraction beta
         call envelope3(ichoice, nmodel, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, omgn, acn, bn, k_or_mn, delta1n, &
                        Kij_or_K0n, Tstarn, Lijn, n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
         call WriteEnvel(n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
