@@ -118,9 +118,9 @@ subroutine readcase(n)
    COMMON/Tdep/Kinf, Tstar
    COMMON/lforin/lij
    COMMON/DewCurve/ilastDewC, TdewC(800), PdewC(800), dewK(800, nco)
-   COMMON/CrossingPoints/Tcr1, Pcr1, Tcr2, Pcr2, KFcr1, Kscr1, KFcr2, Kscr2
+   !COMMON/CrossingPoints/Tcr1, Pcr1, Tcr2, Pcr2, KFcr1, Kscr1, KFcr2, Kscr2
    COMMON/lowTbub/TlowT, PlowT, KlowT, PHILOGxlowT !shared with envelope2
-   COMMON/lowTKsep/KFsep1     !shared with envelope3
+   !COMMON/lowTKsep/KFsep1     !shared with envelope3
 
    type(envelope) :: dew_envelope, low_t_envelope, high_p_envelope
 
