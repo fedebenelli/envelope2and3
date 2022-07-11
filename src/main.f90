@@ -823,6 +823,11 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
       
       tmp_logk(i, :n) = X(:n)
       ! rho_y = 1/Vy     incipient phase density
+
+      if (ichoice == 3 .and. P < 1.0) then
+         run = .false.   ! isolated LL line detected. Stop and start a new one from low T false bubble point
+      end if
+
         if (sum(X(:n)*Xold(:n)) < 0) then  ! critical point detected
             ncri = ncri + 1
             icri(ncri) = i - 1
