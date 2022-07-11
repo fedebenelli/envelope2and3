@@ -209,8 +209,32 @@ subroutine readcase(n)
         call envelope2(ichoice, nmodel, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn, k_or_mn, delta1n, &
                      Kij_or_K0n, Tstarn, Lijn, n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri, high_p_envelope)
         call WriteEnvel(n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
+
+      if (P < 1.0) then ! 5/6/22
+         ichoice = 1   ! now run from Low T Bubble point, after isolated LL saturation curve
+         P = 11.0
+         T = 205.0
+         do while (P > 10) ! > 10
+            T = T - 5.D0
+            P = sum(z*PCn*EXP(5.373*(1 + omgn)*(1 - TCn/T)))
+         end do
+         KFACT = PCn*EXP(5.373*(1 + omgn)*(1 - TCn/T))/P
          call envelope2(ichoice, nmodel, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn, k_or_mn, delta1n, &
                         Kij_or_K0n, Tstarn, Lijn, n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri, low_t_envelope)
+         call WriteEnvel(n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
+
+         ! Find cross between high P LL and bubble
+         call find_cross(high_p_envelope%t, low_t_envelope%t, &
+                         high_p_envelope%p, low_t_envelope%p, cross)
+         Tcr1 = cross(1, 1)
+         Pcr1 = cross(1, 2)
+
+         ! Find cross between dew and bubble
+         call find_cross(dew_envelope%t, low_t_envelope%t, &
+                         dew_envelope%p, low_t_envelope%p, cross)
+         Tcr2 = cross(2, 1)
+         Pcr2 = cross(2, 2)
+      end if
     END IF
 
     if (Tcr1 == 0.0d0) then ! no crossings
