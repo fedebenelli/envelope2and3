@@ -402,7 +402,10 @@ subroutine CheckCross(XpairA, YpairA, XpairB, YpairB, Cross, Xcr, Ycr)
 end subroutine CheckCross
 
 subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn, k_or_mn, delta1n, &
-                     Kij_or_K0n, Tstarn, Lijn, n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
+                     Kij_or_K0n, Tstarn, Lijn, n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri, &
+                     this_envelope)
+
+   use dtypes, only: envelope
 
     implicit DOUBLE PRECISION(A - H, O - Z)
     PARAMETER(nco=64)
