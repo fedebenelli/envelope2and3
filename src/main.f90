@@ -57,7 +57,7 @@ END program
 
 subroutine readcase(n)
    use dtypes, only: envelope, kfcross
-   use array_operations, only: find_cross
+   use array_operations, only: find_cross, wp
    implicit DOUBLE PRECISION(A - H, O - Z)
    PARAMETER(nco=64, Pmax=700.0)
    dimension z(n), xx(n), w(n)
@@ -105,7 +105,7 @@ subroutine readcase(n)
    DOUBLE PRECISION, dimension(n) :: DLPHITx, DLPHIPx, DLPHITy, DLPHIPy
    DOUBLE PRECISION, dimension(n, n) :: FUGNx, FUGNy
 
-   double precision, allocatable :: cross(:, :)
+   real(wp), allocatable :: cross(:, :)
 
    CHARACTER*4 :: spec
    LOGICAL FIRST

@@ -19,6 +19,9 @@ end module
 module array_operations
     implicit none
 
+    integer, parameter :: wp = 16
+
+
 contains
 
     subroutine find_cross(tv1, tv2, pv1, pv2, cross)
@@ -31,19 +34,20 @@ contains
         !!  | x_cross | y_cross | first_line_index | second_line_index |
         !!  | --------| ------- | ---------------- | ----------------- |
 
+        
         real(8), allocatable, intent(in)  :: tv1(:)  !! First line x values
         real(8), allocatable, intent(in)  :: tv2(:)  !! Second line x values
         real(8), allocatable, intent(in)  :: pv1(:)  !! First line y values
         real(8), allocatable, intent(in)  :: pv2(:)  !! Second line y values
 
-        real(8), allocatable, intent(out) :: cross(:, :) !! Found crossings matrix
+        real(wp), allocatable, intent(out) :: cross(:, :) !! Found crossings matrix
      
-        real(8) :: x11, x12, x21, x22, y11, y12, y21, y22
+        real(wp) :: x11, x12, x21, x22, y11, y12, y21, y22
      
-        real(8) :: x_cross, y_cross, m1, b1, m2, b2, xlow, xup, ylow, yup
-        real(8), dimension(2) :: xpair_1, xpair_2, ypair_1, ypair_2
+        real(wp) :: x_cross, y_cross, m1, b1, m2, b2, xlow, xup, ylow, yup
+        real(wp), dimension(2) :: xpair_1, xpair_2, ypair_1, ypair_2
         integer :: i, j, n
-        real(8), allocatable :: new_row(:)
+        real(wp), allocatable :: new_row(:)
      
         allocate(cross(0, 4))
         n = 0
@@ -82,14 +86,15 @@ contains
      
               if ( &
                  (xlow <= x_cross) .and. (x_cross <= xup) .and. &
-                 (ylow <= y_cross) .and. (y_cross <= yup)) then
+                 (ylow <= y_cross) .and. (y_cross <= yup) &
+                 ) then
                  print *, "CROSS:", i, j, x_cross, y_cross
                  if ( (abs(x_cross - cross(n, 1)) < 0.1) .and. &
                       (abs(y_cross - cross(n, 2)) < 0.1)) then
                         print *, "CROSS: Repeated cross, skipping..."
                         cycle
                  end if
-                 new_row = [x_cross, y_cross, real(i, 8), real(j, 8)]
+                 new_row = [x_cross, y_cross, real(i, wp), real(j, wp)]
                  n = n + 1
                  call append_2d(cross, new_row)
               end if
@@ -100,9 +105,9 @@ contains
      
      
      subroutine append_2d(array, values)
-        real(8), allocatable, intent(in out) :: array(:, :)
-        real(8), allocatable, intent(in) :: values(:)
-        real(8), allocatable :: tmp_array(:, :)
+        real(wp), allocatable, intent(in out) :: array(:, :)
+        real(wp), allocatable, intent(in) :: values(:)
+        real(wp), allocatable :: tmp_array(:, :)
      
         integer :: ni, nj, sh(2)
      
