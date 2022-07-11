@@ -337,8 +337,10 @@ subroutine readcase(n)
     end if
 end subroutine readcase
 
+
 subroutine WriteEnvel(n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
     use file_operations, only: out_i, outfile
+
     ! T, P and Density of the calculated envelope
     DOUBLE PRECISION, dimension(800) :: Tv
     DOUBLE PRECISION, dimension(800) :: Pv
@@ -349,6 +351,7 @@ subroutine WriteEnvel(n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
 
     ! positions of the last saturation points before each critical point
     integer, dimension(4) :: icri
+
     ! T, P and Density of critical points
     DOUBLE PRECISION, dimension(4) :: Tcri
     DOUBLE PRECISION, dimension(4) :: Pcri
@@ -363,21 +366,22 @@ subroutine WriteEnvel(n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
     filename = "envelout"
     filename = outfile(filename, out_i)
 
-    open(unit=out_i, file=filename)
-
+   open (unit=out_i, file=filename)
 
     !WRITE (out_i, *)
     WRITE (out_i, *) '   T(K)        P(bar)        D(mol/L)'
     do i = 1, n_points
         WRITE (out_i, 1) Tv(i), Pv(i), Dv(i)
     end do
-1   FORMAT(F12.4, 2E14.4, x, I4)
+
+1  FORMAT(F12.4, 2E14.4, x, I4)
     WRITE (out_i, *)
     WRITE (out_i, *) ' Number of critical points found: ', ncri
     WRITE (out_i, *) '   T(K)        P(bar)        D(mol/L)'
     do i = 1, ncri
         WRITE (out_i, 1) Tcri(i), Pcri(i), Dcri(i), icri(i)
     end do
+   close(out_i)
 end subroutine WriteEnvel
 
 subroutine CheckCross(XpairA, YpairA, XpairB, YpairB, Cross, Xcr, Ycr)
