@@ -240,6 +240,7 @@ subroutine readcase(n)
    print *, Tcr1, Pcr1, "cross1"
    print *, Tcr2, Pcr2, "cross2"
 
+   if (abs(Tcr1) < 1d-5) then ! no crossings
       print *, "no cross found"
         ichoice = 1   ! first inner curve: 3-phase bubble curve (incipient: V)
         T = TlowT
@@ -342,6 +343,8 @@ subroutine readcase(n)
         call WriteEnvel(n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
     end if
 
+   ! THIS IF SHOULD BE INSIDE THE ELSE ABOVE!!
+   if (abs(Tcr2) > 1d-5) then
       print *, "second cross", Tcr2, Pcr2
         ichoice = 1
         T = Tcr2
