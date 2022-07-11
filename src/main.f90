@@ -264,12 +264,24 @@ subroutine readcase(n)
                          high_p_envelope%p, low_t_envelope%p, cross)
          Tcr1 = cross(1, 1)
          Pcr1 = cross(1, 2)
+         icross = int(cross(1, 3))
+         jcross = int(cross(1, 4))
 
+         ! New Kfactors interpolated for the Left cross
+         kfcr1 = kfcross(jcross, low_t_envelope%t, low_t_envelope%logk, Tcr1)
+         kscr1 = kfcross(icross, high_p_envelope%t, high_p_envelope%logk, Tcr1)
+         
          ! Find cross between dew and bubble
          call find_cross(dew_envelope%t, low_t_envelope%t, &
                          dew_envelope%p, low_t_envelope%p, cross)
-         Tcr2 = cross(2, 1)
-         Pcr2 = cross(2, 2)
+         Tcr2 = cross(1, 1)
+         Pcr2 = cross(1, 2)
+         icross = int(cross(1, 3))
+         jcross = int(cross(1, 4))
+
+         ! New Kfactors interpolated for the right cross
+         kfcr2 = kfcross(jcross, low_t_envelope%t, low_t_envelope%logk, Tcr2)
+         kscr2 = kfcross(icross, dew_envelope%t, dew_envelope%logk, Tcr2)
       end if
    END IF
 
