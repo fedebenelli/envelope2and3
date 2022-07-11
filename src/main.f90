@@ -871,8 +871,17 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
             Xold2 = Xold
             Xold = X
             X = Xold + dXdS*delS
+
+         black_i = 0
+         step_fixer = 1.d0
             if (passingcri) passingcri = .false.
+
             do while (maxval(abs(X(:n))) < 0.03)  ! approaching the black hole... get out of there! (0.03)
+            black_i = black_i + 1
+            if (black_i > 50) then
+               print *, "Stuck on the black hole 1"
+               step_fixer = 3.d0
+            end if
                 stepX = maxval(abs(X(:n) - Xold(:n))) ! the step given by the most changing logK to fall into the black hole
                 passingcri = .true.
                 if (stepX > 0.07) then
@@ -880,7 +889,7 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
                     X = X - dXdS*delS/2   !  half step back
                 else
                     S = S + delS
-                    X = X + dXdS*delS   ! one more step to jump over the critical point
+               X = X + step_fixer*dXdS*delS   ! one more step to jump over the critical point
                 end if
             end do
 
@@ -1280,7 +1289,14 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
                 X = X + dXdS*delS   ! one more step to jump over the critical point
                 passingcri = .true.
             end if
+
+         black_i = 0
+
             do while (maxval(abs(X(n + 1:2*n))) < 0.03)  ! approaching the black hole... get out of there! (0.03)
+            black_i = black_i + 1
+            if (black_i > 10) then
+               print *, "Stuck on the black hole 2"
+            end if
                 stepX = maxval(abs(X(n + 1:2*n) - Xold(n + 1:2*n))) ! the step given by the most changing logKs to fall into the black hole
                 passingcri = .true.
                 if (stepX > 0.07) then
