@@ -128,6 +128,7 @@ subroutine readcase(n)
 
     Tcr1 = 0.d0 ! T of 1st crossing point detected between different envelope segments
     Tcr2 = 0.d0
+
     READ (1, *) (z(j), j=1, N)
     read (1, *) nmodel
     if (nmodel < 3) then
@@ -137,7 +138,7 @@ subroutine readcase(n)
     end if
     WRITE (2, *)
     write (2, 4) (z(i), i=1, n)
-4   FORMAT('Molar fractions: ', 20F7.4)
+4  FORMAT('Molar fractions: ', 20F7.4)
 
     ! Passing values from commons(nco) to input arguments (n)
     TCn = tc(:n)
@@ -629,6 +630,7 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
                 X = Xold + dXdS*delS
                 iter = 0
             end if
+
             KFACT = exp(X(:n))
             y = z*KFACT
             T = exp(X(n + 1))
@@ -1168,8 +1170,8 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
                 end do
                 if (iter > 10) delX = delX/2  ! too many iterations (sometimes due to oscillatory behavior near crit) --> Reduce it
             end if
-            X = X + delX
-            if (.not. passingcri .and. i /= 1 .and. iter == 20 .and. maxval(abs(delX)) > 0.001) then ! Too many iterations-->Reduce step to new point
+
+
                 delS = delS/2
                 S = S - delS
                 X = Xold + dXdS*delS
@@ -1185,6 +1187,7 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
             y = KFACT*xx
             w = KFsep*xx
         end do
+
 ! Point converged (unless it jumped out because of high number of iterations)
         if (iter > 70) run = .false.
         if (beta < 0) run = .false.
