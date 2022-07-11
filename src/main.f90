@@ -587,7 +587,8 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
         ! Newton starts here
         delX = 1.0
         iter = 0
-        do while (maxval(abs(delX)) > 1.d-5 .and. iter <= 70)
+      max_iter = 100
+      do while (maxval(abs(delX)) > 1.d-5 .and. iter <= max_iter)
             iter = iter + 1
             !      nc,MTYP,INDIC,T,P,rn,V,PHILOG,DLPHI,DLPHIP,DLPHIT,FUGN
             call TERMO(n, iy, 4, T, P, y, Vy, PHILOGy, DLPHIPy, DLPHITy, FUGNy)
@@ -624,11 +625,12 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
             end if
 
             X = X + delX
-            if (.not. passingcri .and. i /= 1 .and. iter == 8 .and. maxval(abs(delX)) > 0.001) then ! Too many iterations-->Reduce step to new point
-                delS = delS/2
+
+         if (.not. passingcri .and. i /= 1 .and. iter > 20 .and. maxval(abs(delX)) > 0.001) then ! Too many iterations-->Reduce step to new point
+            delS = delS*3.0/4.0
                 S = S - delS
                 X = Xold + dXdS*delS
-                iter = 0
+            !iter = 0
             end if
 
             KFACT = exp(X(:n))
@@ -644,7 +646,7 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
             KlowT(1:n) = KFACT
             PHILOGxlowT(1:n) = PHILOGx
         end if
-        if (iter > 70) run = .false.
+      if (iter > max_iter) run = .false.
         if (P > maxP) maxP = P
         if (ichoice == 2 .and. i > 1) then
             if (P < Pv(i - 1) .and. P < maxP/5 .and. T > 300) run = .false.  ! to finish envelope going to low T bubble
@@ -1102,7 +1104,9 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
         ! Newton starts here
         delX = 1.0
         iter = 0
-        do while (maxval(abs(delX)) > 1.d-5 .and. iter <= 70)
+      max_iter = 100
+      reps = 0
+      do while (maxval(abs(delX)) > 1.d-5 .and. iter <= max_iter)
             iter = iter + 1
          ! nc,MTYP,INDIC,T,P,rn,V,PHILOG,DLPHI,DLPHIP,DLPHIT,FUGN
             call TERMO(n, iy, 4, T, P, y, Vy, PHILOGy, DLPHIPy, DLPHITy, FUGNy)
@@ -1185,11 +1189,12 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
                 if (iter > 10) delX = delX/2  ! too many iterations (sometimes due to oscillatory behavior near crit) --> Reduce it
             end if
 
+            X = X + delX
 
-                delS = delS/2
+         if (.not. passingcri .and. i /= 1 .and. iter > 20 .and. maxval(abs(delX)) > 0.001) then ! Too many iterations--> Reduce step to new point
+            delS = delS*3.d0/4.d0
                 S = S - delS
                 X = Xold + dXdS*delS
-                iter = 0
             end if
 
             KFACT = exp(X(:n))
@@ -1203,7 +1208,7 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
         end do
 
 ! Point converged (unless it jumped out because of high number of iterations)
-        if (iter > 70) run = .false.
+      if (iter > max_iter) run = .false.
         if (beta < 0) run = .false.
         if (ichoice == 1 .and. i == 1) KFsep1(1:n) = KFsep
 
