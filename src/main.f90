@@ -695,7 +695,10 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
       if (iter > max_iter) run = .false.
       if (P > maxP) maxP = P
       if (ichoice == 2 .and. i > 1) then
-         if (P < Pv(i - 1) .and. P < maxP/5 .and. T > 300) run = .false.  ! to finish envelope going to low T bubble
+         ! TODO: If this is the way the low p dew line finishes, I think this should be revisited
+         if (P < Pv(i - 1) .and. P < maxP/5 .and. T > 300) then
+            run = .false.  ! to finish envelope going to low T bubble
+         end if
          if (Tcr1 == 0.d0) then
             if (minmaxT) then ! check for self-crossing of the envelope
                iD = imin
