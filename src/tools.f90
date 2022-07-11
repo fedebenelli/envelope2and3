@@ -99,3 +99,24 @@ contains
      end subroutine find_cross
      
      
+     subroutine append_2d(array, values)
+        real(8), allocatable, intent(in out) :: array(:, :)
+        real(8), allocatable, intent(in) :: values(:)
+        real(8), allocatable :: tmp_array(:, :)
+     
+        integer :: ni, nj, sh(2)
+     
+        sh = shape(array)
+        ni = sh(1)
+        nj = sh(2)
+     
+        allocate(tmp_array(ni+1, nj))
+     
+        tmp_array(:ni, :) = array
+        tmp_array(ni+1, :) = values
+     
+        deallocate(array)
+        array = tmp_array
+     end subroutine append_2d
+     
+end module
