@@ -1256,7 +1256,7 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
          w = KFsep*xx
       end do
 
-! Point converged (unless it jumped out because of high number of iterations)
+      ! Point converged (unless it jumped out because of high number of iterations)
       if (iter > max_iter) run = .false.
       if (beta < 0) run = .false.
       if (ichoice == 1 .and. i == 1) KFsep1(1:n) = KFsep
