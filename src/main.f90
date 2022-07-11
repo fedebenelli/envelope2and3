@@ -196,8 +196,8 @@ subroutine readcase(n)
         y = 0.d0
         y(n) = 1.d0
         difw = -1.d0
-        !        WRITE (2,*) '  P = ', P
-        !        WRITE (2,*) '     T    dif LogFug'
+      ! WRITE (2,*) '  P = ', P
+      ! WRITE (2,*) '     T    dif LogFug'
         do while (difW < 0.d0)
             T = T - 10.D0
             call TERMO(n, ix, 1, T, P, z, Vx, PHILOGx, DLPHIPx, DLPHITx, FUGNx) ! for fluid
