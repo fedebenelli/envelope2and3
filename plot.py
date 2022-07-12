@@ -25,6 +25,6 @@ for i, envelout in enumerate(files):
     t, p = get_envelope(envelout)
     # Plot data
     plt.plot(t, p, label=f'envelout{i+1}')
-    
+
 plt.legend()
 plt.show()
