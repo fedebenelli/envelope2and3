@@ -215,28 +215,35 @@ subroutine readcase(n)
       ! (starting from) low temperature bubble envelope
       call find_cross(dew_envelope%t, low_t_envelope%t, &
                       dew_envelope%p, low_t_envelope%p, crossings)
+      
+      if (size(crossings) > 1) then
+         ! At least two crosses were found
 
-      ! Left Cross (since the search is made from the dew line, the right cross
-      !             will be found first, but keeping the 1 and 2 naming for
-      !             compatibility, should be fixed after standarizing)
-      Tcr1 = crossings(2)%x
-      Pcr1 = crossings(2)%y
-      icross = crossings(2)%i
-      jcross = crossings(2)%j
+         ! Left Cross (since the search is made from the dew line, the right cross
+         !             will be found first, but keeping the 1 and 2 naming for
+         !             compatibility, should be fixed after standarizing)
+         Tcr1 = crossings(2)%x
+         Pcr1 = crossings(2)%y
+         icross = crossings(2)%i
+         jcross = crossings(2)%j
 
-      ! New Kfactors interpolated for the Left cross
-      kfcr1 = kfcross(jcross, low_t_envelope%t, low_t_envelope%logk, Tcr1)
-      kscr1 = kfcross(icross, dew_envelope%t, dew_envelope%logk, Tcr1)
+         ! New Kfactors interpolated for the Left cross
+         kfcr1 = kfcross(jcross, low_t_envelope%t, low_t_envelope%logk, Tcr1)
+         kscr1 = kfcross(icross, dew_envelope%t, dew_envelope%logk, Tcr1)
 
-      ! Right cross
-      Tcr2 = crossings(1)%x
-      Pcr2 = crossings(1)%y
-      icross = crossings(1)%i
-      jcross = crossings(1)%j
+         ! Right cross
+         Tcr2 = crossings(1)%x
+         Pcr2 = crossings(1)%y
+         icross = crossings(1)%i
+         jcross = crossings(1)%j
 
-      ! New Kfactors interpolated for the right cross
-      kfcr2 = kfcross(jcross, low_t_envelope%t, low_t_envelope%logk, Tcr2)
-      kscr2 = kfcross(icross, dew_envelope%t, dew_envelope%logk, Tcr2)
+         ! New Kfactors interpolated for the right cross
+         kfcr2 = kfcross(jcross, low_t_envelope%t, low_t_envelope%logk, Tcr2)
+         kscr2 = kfcross(icross, dew_envelope%t, dew_envelope%logk, Tcr2)
+      else
+         Tcr1 = 0
+         Pcr1 = 0
+      end if
       ! ========================================================================
 
    ELSE  ! now run from High P L-L saturation (incipient phase rich in last comp.)
