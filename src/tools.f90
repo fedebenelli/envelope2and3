@@ -48,6 +48,10 @@ module array_operations
         real(wp), dimension(2) :: xpair_1, xpair_2, ypair_1, ypair_2
         integer :: i, j, n
 
+        if (allocated(crossings)) then
+           deallocate(crossings)
+        end if
+        
         allocate(crossings(2))
         n = 0
         
