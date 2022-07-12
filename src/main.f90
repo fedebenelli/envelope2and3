@@ -988,9 +988,12 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
 
    n_points = i
    !-----------------------------------------------------------
-   this_envelope%logk = tmp_logk(:n_points, :)
-   this_envelope%t = Tv(:n_points)
-   this_envelope%p = Pv(:n_points)
+
+   ! Define envelope values, omit the last point to avoid not really
+   ! converged cases
+   this_envelope%logk = tmp_logk(:n_points-1, :)
+   this_envelope%t = Tv(:n_points-1)
+   this_envelope%p = Pv(:n_points-1)
 
    print *, y
    print *, rho_x
