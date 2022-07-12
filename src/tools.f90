@@ -51,8 +51,8 @@ module array_operations
         if (allocated(crossings)) then
            deallocate(crossings)
         end if
-        
-        allocate(crossings(2))
+
+        allocate(crossings(0))
         n = 0
         
         do i = 2, size(tv1)                  
@@ -100,8 +100,9 @@ module array_operations
                  current_cross = cross(x_cross, y_cross, i, j)
                  n = n + 1
 
-                 crossings(n) = current_cross
-              end if
+                 crossings = [crossings, current_cross]
+
+               end if
 
            end do
         end do
