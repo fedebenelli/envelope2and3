@@ -6,8 +6,9 @@
 ## FCMODDIR=flag to set read/write .mod and .smod directory
 ## FCMODREADDIR=flag to set write-only .mod and .smod directory
 ## MODDIR=.mod and .smod directory (leave blank for root)
-OPT=-O0
-FCFLAGS:=$(OPT) -g
+
+OPT=-Ofast -g -pg -no-pie -fno-builtin
+FCFLAGS:=$(OPT)
 ifeq  ($(FC), ifort)
 FC:=ifort
 LIBS:=-qmkl
