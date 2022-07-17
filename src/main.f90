@@ -1,3 +1,4 @@
+
 ! Listado de commons utilizados, que podrían pasar a un módulo:
 !   COMMON /CRIT/TC(nco),PC(nco),DCeos(nco),omg(nco)
 !        COMMON /COMPONENTS/ ac(nco),b(nco),delta1(nco),rk(nco),Kij_or_K0,NTDEP
@@ -718,11 +719,14 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
       end if
       if (iter > max_iter) run = .false.
       if (P > maxP) maxP = P
+
+      
       if (ichoice == 2 .and. i > 1) then
          ! TODO: If this is the way the low p dew line finishes, I think this should be more strict
          if (P < Pv(i - 1) .and. P < maxP/5 .and. T > 300) then
             run = .false.  ! to finish envelope going to low T bubble
          end if
+
          if (Tcr1 == 0.d0) then
             if (minmaxT) then ! check for self-crossing of the envelope
                iD = imin
@@ -760,134 +764,8 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
             else    ! check for minT
                if (Told < T .and. Told < Told2) minT = .true.
                if (minT) imin = i - 1
-            end if
+            end if            
          end if
-      else if (ichoice == 1 .and. i > 1) then ! along construction of "bubble" curve from low T...
-
-         if (P < Pv(i - 1) .and. Tcr1 == 0.d0) then ! Max Pressure passed without crossing -->
-            !  Start 3envel from low T bub (added June 2017)
-            !            run = .false.
-         else if (Tcr1 == 0.d0) then ! search for 1st crossing with dew curve coming from high P
-            iD = ilastDewC
-            ! do while (PdewC(iD)>Pv(i-1))
-            do while (PdewC(iD) > P)
-               iD = iD - 1
-            end do
-            if (abs(TdewC(iD) - T) < 20) then
-               TpairA = [TdewC(iD + 1), TdewC(iD)]
-               PpairA = [PdewC(iD + 1), PdewC(iD)]
-               TpairB = [Tv(i - 1), T]
-               PpairB = [Pv(i - 1), P]
-               call CheckCross(TpairA, PpairA, TpairB, PpairB, Cross, Tcr, Pcr)
-               if (Cross) then
-                  Tcr1 = Tcr
-                  Pcr1 = Pcr
-                  KFcr1(1:n) = XOLD(1:n) + (X(1:n) - XOLD(1:n))*(Tcr - Told)/(T - Told)
-                  Kscr1(1:n) = dewK(iD, :n) + (dewK(iD + 1, :n) - dewK(iD, :n))*(Tcr - TpairA(2))/(TpairA(1) - TpairA(2))
-               end if
-            end if
-            ! do while (Tcr1==0.d0.and.PdewC(iD)>P) !  in case the previous check was not yet for the right segment
-            do while (Tcr1 == 0.d0 .and. Tcr > TdewC(iD)) !  in case the previous check was not yet for the right segment
-               iD = iD - 1
-               if (abs(TdewC(iD) - T) < 20) then
-                  TpairA = [TdewC(iD + 1), TdewC(iD)]
-                  PpairA = [PdewC(iD + 1), PdewC(iD)]
-                  TpairB = [Tv(i - 1), T]
-                  PpairB = [Pv(i - 1), P]
-                  call CheckCross(TpairA, PpairA, TpairB, PpairB, Cross, Tcr, Pcr)
-                  if (Cross) then
-                     Tcr1 = Tcr
-                     Pcr1 = Pcr
-                     KFcr1(1:n) = XOLD(1:n) + (X(1:n) - XOLD(1:n))*(Tcr - Told)/(T - Told)
-                     Kscr1(1:n) = dewK(iD, :n) + (dewK(iD + 1, :n) - dewK(iD, :n))*(Tcr - TpairA(2))/(TpairA(1) - TpairA(2))
-                  end if
-               end if
-            end do
-         else ! search for 2nd crossing with dew curve coming from high P
-
-            do while (TdewC(iD) < Tv(i - 1))
-               iD = iD - 1
-            end do
-
-            if (abs(PdewC(iD) - P) < 20) then
-               TpairA = [TdewC(iD + 1), TdewC(iD)]
-               PpairA = [PdewC(iD + 1), PdewC(iD)]
-               TpairB = [Tv(i - 1), T]
-               PpairB = [Pv(i - 1), P]
-               call CheckCross(TpairA, PpairA, TpairB, PpairB, Cross, Tcr, Pcr)
-               if (Cross) then
-                  Tcr2 = Tcr
-                  Pcr2 = Pcr
-                  KFcr2(1:n) = XOLD(1:n) + (X(1:n) - XOLD(1:n))*(Tcr - Told)/(T - Told)
-                  Kscr2(1:n) = dewK(iD, :n) + (dewK(iD + 1, :n) - dewK(iD, :n))*(Tcr - TpairA(2))/(TpairA(1) - TpairA(2))
-                  T = Tcr2
-                  P = Pcr2
-                  ! run = .false.
-               end if
-            end if
-
-            do while (run .and. TdewC(iD) < T)  !  in case the previous check was not yet for the right segment
-               iD = iD - 1
-               if (abs(PdewC(iD) - P) < 20) then
-                  TpairA = [TdewC(iD + 1), TdewC(iD)]
-                  PpairA = [PdewC(iD + 1), PdewC(iD)]
-                  TpairB = [Tv(i - 1), T]
-                  PpairB = [Pv(i - 1), P]
-                  call CheckCross(TpairA, PpairA, TpairB, PpairB, Cross, Tcr, Pcr)
-                  if (Cross) then
-                     Tcr2 = Tcr
-                     Pcr2 = Pcr
-                     KFcr2(1:n) = XOLD(1:n) + (X(1:n) - XOLD(1:n))*(Tcr - Told)/(T - Told)
-                     Kscr2(1:n) = dewK(iD, :n) + (dewK(iD + 1, :n) - dewK(iD, :n))*(Tcr - TpairA(2))/(TpairA(1) - TpairA(2))
-                     T = Tcr2
-                     P = Pcr2
-                     ! run = .false.
-                  end if
-               end if
-            end do
-
-         end if
-      else if (ichoice == 3 .and. P < PmaxDewC) then ! search for crossing with dew curve, coming from high P L-L sat
-         iD = ilastDewC
-         do while (TdewC(iD) < Tv(i))
-            iD = iD - 1
-         end do
-         if (abs(PdewC(iD) - P) < 30) then
-            TpairA = [TdewC(iD + 1), TdewC(iD)]
-            PpairA = [PdewC(iD + 1), PdewC(iD)]
-            TpairB = [Tv(i - 1), T]
-            PpairB = [Pv(i - 1), P]
-            call CheckCross(TpairA, PpairA, TpairB, PpairB, Cross, Tcr, Pcr)
-            if (Cross) then
-               Tcr1 = Tcr
-               Pcr1 = Pcr
-               Kscr1(1:n) = XOLD(1:n) + (X(1:n) - XOLD(1:n))*(Tcr - Told)/(T - Told)
-               KFcr1(1:n) = dewK(iD, :n) + (dewK(iD + 1, :n) - dewK(iD, :n))*(Tcr - TpairA(2))/(TpairA(1) - TpairA(2))
-               T = Tcr
-               P = Pcr
-               ! run = .false.
-            end if
-         end if
-
-         do while (run .and. TdewC(iD) < Tv(i - 1))  !  in case the previous check was not yet for the right segment
-            iD = iD - 1
-            if (abs(PdewC(iD) - P) < 30) then
-               TpairA = [TdewC(iD + 1), TdewC(iD)]
-               PpairA = [PdewC(iD + 1), PdewC(iD)]
-               TpairB = [Tv(i - 1), T]
-               PpairB = [Pv(i - 1), P]
-               call CheckCross(TpairA, PpairA, TpairB, PpairB, Cross, Tcr, Pcr)
-               if (Cross) then
-                  Tcr1 = Tcr
-                  Pcr1 = Pcr
-                  Kscr1(1:n) = XOLD(1:n) + (X(1:n) - XOLD(1:n))*(Tcr - Told)/(T - Told)
-                  KFcr1(1:n) = dewK(iD, :n) + (dewK(iD + 1, :n) - dewK(iD, :n))*(Tcr - TpairA(2))/(TpairA(1) - TpairA(2))
-                  T = Tcr
-                  P = Pcr
-                  ! run = .false.
-               end if
-            end if
-         end do
 
       end if
 
