@@ -9,50 +9,16 @@
 module constants
    implicit none
 
-   integer, parameter :: wp = 16
+   integer, parameter :: wp = kind(0.0q1)
 end module constants
 
 
-module dtypes
-   use constants
-   implicit none
-
-   type :: envelope
-      real(8), allocatable :: t(:)
-      real(8), allocatable :: p(:)
-      real(8), allocatable :: logk(:, :)
-   end type envelope
-
-   type :: cross
-      real(wp) :: x
-      real(wp) :: y
-      integer :: i
-      integer :: j
-   end type cross
-
-contains
-
-   function kfcross(i, t_values, logk, target_t)
-      real(8), allocatable :: kfcross(:)
-      integer, intent(in) :: i
-      real(8), allocatable, intent(in) :: t_values(:)
-      real(8), allocatable, intent(in) :: logk(:, :)
-      real(8), intent(in) :: target_t
-
-      kfcross = (logk(i, :) - logk(i - 1, :)) &
-                /(t_values(i) - t_values(i - 1)) &
-                *(target_t - t_values(i - 1)) &
-                + logk(i - 1, :)
-   end function
-
-end module dtypes
-
 program calc_envelope2and3
-   implicit DOUBLE PRECISION(A - H, O - Z)
-   LOGICAL Comp3ph
-   COMMON/writeComp/Comp3ph, i1, i2
-   OPEN (1, FILE='envelIN.txt')
-   OPEN (2, FILE='envelOUT.txt')
+   implicit double precision(A - H, O - Z)
+   logical Comp3ph
+   common/writeComp/Comp3ph, i1, i2
+   open (1, FILE='envelIN.txt')
+   open (2, FILE='envelOUT.txt')
    read (1, *) N
    !write (6, *) 'write extra output with compositions for 2 compounds along 3-phase lines?'
    !write (6, *) 'Enter 1 for YES. Otherwise, any other number.'
@@ -62,7 +28,7 @@ program calc_envelope2and3
 
    if (i == 1) Comp3ph = .true.
    if (Comp3ph) then
-      OPEN (3, FILE='Comp3phOUT.txt')
+      open (3, FILE='Comp3phOUT.txt')
       write (6, *) 'Enter order numbers for two selected compounds, separated by space.'
       read (5, *) i1, i2
       write (3, *) 'Molar fractions along three-phase boundaries are printed below for compounds with order:', i1, i2
@@ -70,41 +36,41 @@ program calc_envelope2and3
 
    call readcase(n)
 
-END program
+end program
 
 subroutine readcase(n)
    use constants
    use dtypes, only: envelope, kfcross, cross
    use array_operations, only: find_cross
-   implicit DOUBLE PRECISION(A - H, O - Z)
-   PARAMETER(nco=64, Pmax=700.0)
+   implicit double precision(A - H, O - Z)
+   parameter(nco=64, Pmax=700.0)
    dimension z(n), xx(n), w(n)
 
-   DOUBLE PRECISION Kinf
-   DOUBLE PRECISION, dimension(n) :: Kfact, KFsep
-   DOUBLE PRECISION, dimension(nco) :: KFcr1, Kscr1, KFcr2, Kscr2, KlowT, PHILOGxlowT, KFsep1 ! go in COMMONS (cannot have n dimension)
+   double precision Kinf
+   double precision, dimension(n) :: Kfact, KFsep
+   double precision, dimension(nco) :: KFcr1, Kscr1, KFcr2, Kscr2, KlowT, PHILOGxlowT, KFsep1 ! go in COMMONS (cannot have n dimension)
    ! pure compound physical constants
-   DOUBLE PRECISION, dimension(n) :: tcn
-   DOUBLE PRECISION, dimension(n) :: pcn
-   DOUBLE PRECISION, dimension(n) :: omgn
+   double precision, dimension(n) :: tcn
+   double precision, dimension(n) :: pcn
+   double precision, dimension(n) :: omgn
 
    ! eos parameters
-   DOUBLE PRECISION, dimension(n) :: acn  ! in bar*(L/mol)**2
-   DOUBLE PRECISION, dimension(n) :: bn   ! in L/mol
-   DOUBLE PRECISION, dimension(n) :: delta1n  !only required for RKPR
-   DOUBLE PRECISION, dimension(n) :: k_or_mn  ! k for RKPR ; m for SRK/PR
+   double precision, dimension(n) :: acn  ! in bar*(L/mol)**2
+   double precision, dimension(n) :: bn   ! in L/mol
+   double precision, dimension(n) :: delta1n  !only required for RKPR
+   double precision, dimension(n) :: k_or_mn  ! k for RKPR ; m for SRK/PR
 
    ! interaction parameters matrices
-   DOUBLE PRECISION, dimension(n, n) :: Kij_or_K0n, Lijn
-   DOUBLE PRECISION, dimension(n, n) :: Tstarn
+   double precision, dimension(n, n) :: Kij_or_K0n, Lijn
+   double precision, dimension(n, n) :: Tstarn
 
    ! interaction parameters matrices
-   DOUBLE PRECISION, dimension(nco, nco) :: Kij_or_K0, Lij, Tstar
+   double precision, dimension(nco, nco) :: Kij_or_K0, Lij, Tstar
 
    ! T, P and Density of the calculated envelope
-   DOUBLE PRECISION, dimension(800) :: Tv
-   DOUBLE PRECISION, dimension(800) :: Pv
-   DOUBLE PRECISION, dimension(800) :: Dv
+   double precision, dimension(800) :: Tv
+   double precision, dimension(800) :: Pv
+   double precision, dimension(800) :: Dv
 
    ! number of valid elements in To, Po and Do arrays
    integer :: n_points
@@ -112,32 +78,32 @@ subroutine readcase(n)
    ! positions of the last saturation points before each critical point
    integer, dimension(4) :: icri
    ! T, P and Density of critical points
-   DOUBLE PRECISION, dimension(4) :: Tcri
-   DOUBLE PRECISION, dimension(4) :: Pcri
-   DOUBLE PRECISION, dimension(4) :: Dcri
+   double precision, dimension(4) :: Tcri
+   double precision, dimension(4) :: Pcri
+   double precision, dimension(4) :: Dcri
 
    ! number of valid elements in icri, Tcri, Pcri and Dcri arrays
    integer :: ncri
 
-   DOUBLE PRECISION, dimension(n) :: y, PHILOGy, PHILOGx
-   DOUBLE PRECISION, dimension(n) :: DLPHITx, DLPHIPx, DLPHITy, DLPHIPy
-   DOUBLE PRECISION, dimension(n, n) :: FUGNx, FUGNy
+   double precision, dimension(n) :: y, PHILOGy, PHILOGx
+   double precision, dimension(n) :: DLPHITx, DLPHIPx, DLPHITy, DLPHIPy
+   double precision, dimension(n, n) :: FUGNx, FUGNy
 
    type(cross), allocatable :: crossings(:)
 
-   CHARACTER*4 :: spec
-   LOGICAL FIRST
+   character*4 :: spec
+   logical FIRST
 
-   COMMON/MODEL/NMODEL
-   COMMON/CRIT/TC(nco), PC(nco), DCeos(nco), omg(nco)
-   COMMON/COMPONENTS/ac(nco), b(nco), delta1(nco), rk_or_m(nco), Kij_or_K0, NTDEP
-   COMMON/rule/ncomb
-   COMMON/bcross/bij(nco, nco)
-   COMMON/Tdep/Kinf, Tstar
-   COMMON/lforin/lij
-   COMMON/DewCurve/ilastDewC, TdewC(800), PdewC(800), dewK(800, nco)
+   common/MODEL/NMODEL
+   common/CRIT/TC(nco), PC(nco), DCeos(nco), omg(nco)
+   common/COMPONENTS/ac(nco), b(nco), delta1(nco), rk_or_m(nco), Kij_or_K0, NTDEP
+   common/rule/ncomb
+   common/bcross/bij(nco, nco)
+   common/Tdep/Kinf, Tstar
+   common/lforin/lij
+   common/DewCurve/ilastDewC, TdewC(800), PdewC(800), dewK(800, nco)
    !COMMON/CrossingPoints/Tcr1, Pcr1, Tcr2, Pcr2, KFcr1, Kscr1, KFcr2, Kscr2
-   COMMON/lowTbub/TlowT, PlowT, KlowT, PHILOGxlowT !shared with envelope2
+   common/lowTbub/TlowT, PlowT, KlowT, PHILOGxlowT !shared with envelope2
    !COMMON/lowTKsep/KFsep1     !shared with envelope3
 
    type(envelope) :: dew_envelope, low_t_envelope, high_p_envelope
@@ -145,16 +111,16 @@ subroutine readcase(n)
    Tcr1 = 0.d0 ! T of 1st crossing point detected between different envelope segments
    Tcr2 = 0.d0
 
-   READ (1, *) (z(j), j=1, N)
+   read (1, *) (z(j), j=1, N)
    read (1, *) nmodel
    if (nmodel < 3) then
       call read2PcubicNC(N, 1, 2)
    else if (nmodel == 3) then
       call readRKPRNC(N, 1, 2)
    end if
-   WRITE (2, *)
+   write (2, *)
    write (2, 4) (z(i), i=1, n)
-4  FORMAT('Molar fractions: ', 20F7.4)
+4  format('Molar fractions: ', 20F7.4)
 
    ! Passing values from commons(nco) to input arguments (n)
    TCn = tc(:n)
@@ -177,9 +143,9 @@ subroutine readcase(n)
    T = 315.0
    do while (P > 0.1)
       T = T - 5.D0
-      P = 1.d0/sum(z/(PCn*EXP(5.373*(1 + omgn)*(1 - TCn/T))))
+      P = 1.d0/sum(z/(PCn*exp(5.373*(1 + omgn)*(1 - TCn/T))))
    end do
-   KFACT = PCn*EXP(5.373*(1 + omgn)*(1 - TCn/T))/P  ! standard Wilson K factors
+   KFACT = PCn*exp(5.373*(1 + omgn)*(1 - TCn/T))/P  ! standard Wilson K factors
    KFACT = 1.d0/KFACT  ! inversion
 
    call envelope2(ichoice, nmodel, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn, k_or_mn, delta1n, &
@@ -189,17 +155,17 @@ subroutine readcase(n)
    PdewC = Pv
    ilastDewC = n_points
 
-   IF (Tcr1 > 0.d0) then  ! self crossing detected (usual in some asymmetric hc mixtures)
+   if (Tcr1 > 0.d0) then  ! self crossing detected (usual in some asymmetric hc mixtures)
 
-   ELSE IF (P > Pmax) then  ! now run from Low T Bubble point
+   else if (P > Pmax) then  ! now run from Low T Bubble point
       ichoice = 1
       P = 11.0   ! 11.0
       T = 205.0
       do while (P > 10) ! > 10
          T = T - 5.D0
-         P = sum(z*PCn*EXP(5.373*(1 + omgn)*(1 - TCn/T)))
+         P = sum(z*PCn*exp(5.373*(1 + omgn)*(1 - TCn/T)))
       end do
-      KFACT = PCn*EXP(5.373*(1 + omgn)*(1 - TCn/T))/P
+      KFACT = PCn*exp(5.373*(1 + omgn)*(1 - TCn/T))/P
       call envelope2(ichoice, nmodel, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn, k_or_mn, delta1n, &
                      Kij_or_K0n, Tstarn, Lijn, n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri, low_t_envelope)
       call WriteEnvel(n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
@@ -216,7 +182,7 @@ subroutine readcase(n)
       ! (starting from) low temperature bubble envelope
       call find_cross(dew_envelope%t, low_t_envelope%t, &
                       dew_envelope%p, low_t_envelope%p, crossings)
-      
+
       if (size(crossings) > 1) then
          ! At least two crosses were found
 
@@ -247,7 +213,7 @@ subroutine readcase(n)
       end if
       ! ========================================================================
 
-   ELSE  ! now run from High P L-L saturation (incipient phase rich in last comp.)
+   else  ! now run from High P L-L saturation (incipient phase rich in last comp.)
       ichoice = 3
       P = Pmax
       T = 710.0
@@ -277,9 +243,9 @@ subroutine readcase(n)
          T = 205.0
          do while (P > 10) ! > 10
             T = T - 5.D0
-            P = sum(z*PCn*EXP(5.373*(1 + omgn)*(1 - TCn/T)))
+            P = sum(z*PCn*exp(5.373*(1 + omgn)*(1 - TCn/T)))
          end do
-         KFACT = PCn*EXP(5.373*(1 + omgn)*(1 - TCn/T))/P
+         KFACT = PCn*exp(5.373*(1 + omgn)*(1 - TCn/T))/P
          call envelope2(ichoice, nmodel, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn, k_or_mn, delta1n, &
                         Kij_or_K0n, Tstarn, Lijn, n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri, low_t_envelope)
          call WriteEnvel(n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
@@ -295,7 +261,7 @@ subroutine readcase(n)
          ! New Kfactors interpolated for the Left cross
          kfcr1 = kfcross(jcross, low_t_envelope%t, low_t_envelope%logk, Tcr1)
          kscr1 = kfcross(icross, high_p_envelope%t, high_p_envelope%logk, Tcr1)
-         
+
          ! Find cross between dew and bubble
          call find_cross(dew_envelope%t, low_t_envelope%t, &
                          dew_envelope%p, low_t_envelope%p, crossings)
@@ -308,7 +274,7 @@ subroutine readcase(n)
          kfcr2 = kfcross(jcross, low_t_envelope%t, low_t_envelope%logk, Tcr2)
          kscr2 = kfcross(icross, dew_envelope%t, dew_envelope%logk, Tcr2)
       end if
-   END IF
+   end if
 
    print *, Tcr1, Pcr1, "cross1"
    print *, Tcr2, Pcr2, "cross2"
@@ -343,7 +309,7 @@ subroutine readcase(n)
 !          P = P1 + (P2-P1) * (1-S1) / (S2-S1)
 !          KFACT = KFsep1(1:n) ! from converged first point for 3-phase bubble curve
       P = PlowT/2
-      FIRST = .TRUE.
+      FIRST = .true.
       spec = 'TP'
       call flash(spec, FIRST, nmodel, n, z, tcn, pcn, omgn, acn, bn, k_or_mn, delta1n, &
                  Kij_or_K0n, Tstarn, Lijn, t, p, v, xx, w, rho_x, rho_y, beta, iter)
@@ -372,7 +338,7 @@ subroutine readcase(n)
          Pold = aux
       end do
       if (abs(dif) > 0.1) then
-         FIRST = .TRUE.
+         FIRST = .true.
          Told = T
          T = T + 10.0
       end if
@@ -446,9 +412,9 @@ subroutine WriteEnvel(n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
    use file_operations, only: out_i, outfile
 
    ! T, P and Density of the calculated envelope
-   DOUBLE PRECISION, dimension(800) :: Tv
-   DOUBLE PRECISION, dimension(800) :: Pv
-   DOUBLE PRECISION, dimension(800) :: Dv
+   double precision, dimension(800) :: Tv
+   double precision, dimension(800) :: Pv
+   double precision, dimension(800) :: Dv
 
    ! number of valid elements in To, Po and Do arrays
    integer :: n_points
@@ -457,9 +423,9 @@ subroutine WriteEnvel(n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
    integer, dimension(4) :: icri
 
    ! T, P and Density of critical points
-   DOUBLE PRECISION, dimension(4) :: Tcri
-   DOUBLE PRECISION, dimension(4) :: Pcri
-   DOUBLE PRECISION, dimension(4) :: Dcri
+   double precision, dimension(4) :: Tcri
+   double precision, dimension(4) :: Pcri
+   double precision, dimension(4) :: Dcri
 
    ! number of valid elements in icri, Tcri, Pcri and Dcri arrays
    integer :: ncri
@@ -473,17 +439,17 @@ subroutine WriteEnvel(n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
    open (unit=out_i, file=filename)
 
    !WRITE (out_i, *)
-   WRITE (out_i, *) '   T(K)        P(bar)        D(mol/L)'
+   write (out_i, *) '   T(K)        P(bar)        D(mol/L)'
    do i = 1, n_points
-      WRITE (out_i, 1) Tv(i), Pv(i), Dv(i)
+      write (out_i, 1) Tv(i), Pv(i), Dv(i)
    end do
 
-1  FORMAT(F12.4, 2E14.4, x, I4)
-   WRITE (out_i, *)
-   WRITE (out_i, *) ' Number of critical points found: ', ncri
-   WRITE (out_i, *) '   T(K)        P(bar)        D(mol/L)'
+1  format(F12.4, 2E14.4, x, I4)
+   write (out_i, *)
+   write (out_i, *) ' Number of critical points found: ', ncri
+   write (out_i, *) '   T(K)        P(bar)        D(mol/L)'
    do i = 1, ncri
-      WRITE (out_i, 1) Tcri(i), Pcri(i), Dcri(i), icri(i)
+      write (out_i, 1) Tcri(i), Pcri(i), Dcri(i), icri(i)
    end do
    close (out_i)
 end subroutine WriteEnvel
@@ -492,8 +458,8 @@ subroutine CheckCross(XpairA, YpairA, XpairB, YpairB, Cross, Xcr, Ycr)
 !   For given consecutive pairs of points along two different curves A and B, this subroutine:
 !   1) Finds the straight line equation connecting each pair of points ( Y = c*X + d )
 !   2) Determines whether there is a crossing between the two segments
-   implicit DOUBLE PRECISION(A - H, O - Z)
-   DOUBLE PRECISION, dimension(2) :: XpairA, YpairA, XpairB, YpairB
+   implicit double precision(A - H, O - Z)
+   double precision, dimension(2) :: XpairA, YpairA, XpairB, YpairB
    logical :: run, passingcri, Cross
    Cross = .false.
    cA = (YpairA(2) - YpairA(1))/(XpairA(2) - XpairA(1))
@@ -515,46 +481,46 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
 
    use dtypes, only: envelope
 
-   implicit DOUBLE PRECISION(A - H, O - Z)
-   PARAMETER(nco=64)
+   implicit double precision(A - H, O - Z)
+   parameter(nco=64)
 
    ! M&M means the book by Michelsen and Mollerup, 2nd Edition (2007)
 
    ! eos id, number of compounds in the system and starting point type
    integer, intent(in) :: model, n, ichoice
 
-   DOUBLE PRECISION Kinf
+   double precision Kinf
 
    ! estimated T and P for first point (then used for every point)
-   DOUBLE PRECISION :: T, P
+   double precision :: T, P
 
    ! estimated K factors for first point (then used for every point)
-   DOUBLE PRECISION, dimension(n) :: KFACT
-   DOUBLE PRECISION, dimension(nco) :: KFcr1, Kscr1, KFcr2, Kscr2, KlowT, PHILOGxlowT ! go in COMMONS (cannot have n dimension)
+   double precision, dimension(n) :: KFACT
+   double precision, dimension(nco) :: KFcr1, Kscr1, KFcr2, Kscr2, KlowT, PHILOGxlowT ! go in COMMONS (cannot have n dimension)
 
    ! composition of the system
-   DOUBLE PRECISION, dimension(n), intent(in) :: z
+   double precision, dimension(n), intent(in) :: z
 
    ! pure compound physical constants
-   DOUBLE PRECISION, dimension(n), intent(in) :: tcn
-   DOUBLE PRECISION, dimension(n), intent(in) :: pcn
-   DOUBLE PRECISION, dimension(n), intent(in) :: omgn
+   double precision, dimension(n), intent(in) :: tcn
+   double precision, dimension(n), intent(in) :: pcn
+   double precision, dimension(n), intent(in) :: omgn
 
    ! eos parameters
-   DOUBLE PRECISION, dimension(n), intent(in) :: acn  ! in bar*(L/mol)**2
-   DOUBLE PRECISION, dimension(n), intent(in) :: bn   ! in L/mol
-   DOUBLE PRECISION, dimension(n), intent(in) :: delta1n  !only required for RKPR
-   DOUBLE PRECISION, dimension(n), intent(in) :: k_or_mn  ! k for RKPR ; m for SRK/PR
+   double precision, dimension(n), intent(in) :: acn  ! in bar*(L/mol)**2
+   double precision, dimension(n), intent(in) :: bn   ! in L/mol
+   double precision, dimension(n), intent(in) :: delta1n  !only required for RKPR
+   double precision, dimension(n), intent(in) :: k_or_mn  ! k for RKPR ; m for SRK/PR
 
    ! interaction parameters matrices
-   DOUBLE PRECISION, dimension(n, n), intent(in) :: Kij_or_K0n
-   DOUBLE PRECISION, dimension(n, n), intent(in) :: Tstarn
-   DOUBLE PRECISION, dimension(n, n), intent(in) :: Lijn
+   double precision, dimension(n, n), intent(in) :: Kij_or_K0n
+   double precision, dimension(n, n), intent(in) :: Tstarn
+   double precision, dimension(n, n), intent(in) :: Lijn
 
    ! T, P and Density of the calculated envelope
-   DOUBLE PRECISION, dimension(800), intent(out) :: Tv
-   DOUBLE PRECISION, dimension(800), intent(out) :: Pv
-   DOUBLE PRECISION, dimension(800), intent(out) :: Dv
+   double precision, dimension(800), intent(out) :: Tv
+   double precision, dimension(800), intent(out) :: Pv
+   double precision, dimension(800), intent(out) :: Dv
 
    ! number of valid elements in Tv, Pv and Dv arrays
    integer, intent(out) :: n_points
@@ -562,34 +528,34 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
    ! positions of the last saturation points before each critical point
    integer, dimension(4), intent(out) :: icri
    ! T, P and Density of critical points
-   DOUBLE PRECISION, dimension(4), intent(out) :: Tcri
-   DOUBLE PRECISION, dimension(4), intent(out) :: Pcri
-   DOUBLE PRECISION, dimension(4), intent(out) :: Dcri
+   double precision, dimension(4), intent(out) :: Tcri
+   double precision, dimension(4), intent(out) :: Pcri
+   double precision, dimension(4), intent(out) :: Dcri
 
    ! number of valid elements in icri, Tcri, Pcri and Dcri arrays
    integer, intent(out) :: ncri
 
    ! Intermediate variables during calculation process
-   DOUBLE PRECISION, dimension(n) :: y, PHILOGy, PHILOGx
-   DOUBLE PRECISION, dimension(n) :: DLPHITx, DLPHIPx, DLPHITy, DLPHIPy
-   DOUBLE PRECISION, dimension(n, n) :: FUGNx, FUGNy
+   double precision, dimension(n) :: y, PHILOGy, PHILOGx
+   double precision, dimension(n) :: DLPHITx, DLPHIPx, DLPHITy, DLPHIPy
+   double precision, dimension(n, n) :: FUGNx, FUGNy
    integer, dimension(n + 2) :: ipiv
-   DOUBLE PRECISION, dimension(n + 2) :: X, Xold, Xold2, delX, bd, F, dFdS, dXdS
-   DOUBLE PRECISION, dimension(n + 2, n + 2) :: JAC, AJ
-   DOUBLE PRECISION :: Vy, Vx
-   DOUBLE PRECISION, dimension(2) :: TpairA, PpairA, TpairB, PpairB
+   double precision, dimension(n + 2) :: X, Xold, Xold2, delX, bd, F, dFdS, dXdS
+   double precision, dimension(n + 2, n + 2) :: JAC, AJ
+   double precision :: Vy, Vx
+   double precision, dimension(2) :: TpairA, PpairA, TpairB, PpairB
    logical :: run, passingcri, Cross, minT, minmaxT
 
-   DOUBLE PRECISION, dimension(nco, nco) :: Kij_or_K0, Tstar
-   COMMON/CRIT/TC(nco), PC(nco), DCeos(nco), omg(nco)
-   COMMON/COMPONENTS/ac(nco), b(nco), delta1(nco), rk_or_m(nco), Kij_or_K0, NTDEP
-   COMMON/MODEL/NMODEL
-   COMMON/rule/ncomb
-   COMMON/bcross/bij(nco, nco)
-   COMMON/Tdep/Kinf, Tstar
-   COMMON/DewCurve/ilastDewC, TdewC(800), PdewC(800), dewK(800, nco)
-   COMMON/CrossingPoints/Tcr1, Pcr1, Tcr2, Pcr2, KFcr1, Kscr1, KFcr2, Kscr2
-   COMMON/lowTbub/TlowT, PlowT, KlowT, PHILOGxlowT
+   double precision, dimension(nco, nco) :: Kij_or_K0, Tstar
+   common/CRIT/TC(nco), PC(nco), DCeos(nco), omg(nco)
+   common/COMPONENTS/ac(nco), b(nco), delta1(nco), rk_or_m(nco), Kij_or_K0, NTDEP
+   common/MODEL/NMODEL
+   common/rule/ncomb
+   common/bcross/bij(nco, nco)
+   common/Tdep/Kinf, Tstar
+   common/DewCurve/ilastDewC, TdewC(800), PdewC(800), dewK(800, nco)
+   common/CrossingPoints/Tcr1, Pcr1, Tcr2, Pcr2, KFcr1, Kscr1, KFcr2, Kscr2
+   common/lowTbub/TlowT, PlowT, KlowT, PHILOGxlowT
 
    real(8) :: tmp_logk(800, n)
    type(envelope) :: this_envelope
@@ -720,7 +686,6 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
       if (iter > max_iter) run = .false.
       if (P > maxP) maxP = P
 
-      
       if (ichoice == 2 .and. i > 1) then
          ! TODO: If this is the way the low p dew line finishes, I think this should be more strict
          if (P < Pv(i - 1) .and. P < maxP/5 .and. T > 300) then
@@ -764,7 +729,7 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
             else    ! check for minT
                if (Told < T .and. Told < Told2) minT = .true.
                if (minT) imin = i - 1
-            end if            
+            end if
          end if
 
       end if
@@ -876,9 +841,9 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
 
    ! Define envelope values, omit the last point to avoid not really
    ! converged cases
-   this_envelope%logk = tmp_logk(:n_points-1, :)
-   this_envelope%t = Tv(:n_points-1)
-   this_envelope%p = Pv(:n_points-1)
+   this_envelope%logk = tmp_logk(:n_points - 1, :)
+   this_envelope%t = Tv(:n_points - 1)
+   this_envelope%p = Pv(:n_points - 1)
 
    print *, y
    print *, rho_x
@@ -906,45 +871,45 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
 !   ichoice=3 is used for cases where the initial saturated phase "xx" is the vapor (e.g. OilB with water from Lindeloff-Michelsen).
 !   y and w will correspond to the two liquid phases, with a beta fraction for w.
 
-   implicit DOUBLE PRECISION(A - H, O - Z)
-   PARAMETER(nco=64)
+   implicit double precision(A - H, O - Z)
+   parameter(nco=64)
 
    ! M&M means the book by Michelsen and Mollerup, 2nd Edition (2007)
 
    ! eos id, number of compounds in the system and starting point type
    integer, intent(in) :: model, n, ichoice
 
-   DOUBLE PRECISION Kinf
+   double precision Kinf
 
    ! estimated T, P and "w" phase fraction for first point (then used for every point)
-   DOUBLE PRECISION :: T, P, beta
+   double precision :: T, P, beta
 
    ! estimated K factors for first point (then used for every point)
-   DOUBLE PRECISION, dimension(n) :: KFACT, KFsep
+   double precision, dimension(n) :: KFACT, KFsep
 
    ! composition of the system
-   DOUBLE PRECISION, dimension(n), intent(in) :: z
+   double precision, dimension(n), intent(in) :: z
 
    ! pure compound physical constants
-   DOUBLE PRECISION, dimension(n), intent(in) :: tcn
-   DOUBLE PRECISION, dimension(n), intent(in) :: pcn
-   DOUBLE PRECISION, dimension(n), intent(in) :: omgn
+   double precision, dimension(n), intent(in) :: tcn
+   double precision, dimension(n), intent(in) :: pcn
+   double precision, dimension(n), intent(in) :: omgn
 
    ! eos parameters
-   DOUBLE PRECISION, dimension(n), intent(in) :: acn  ! in bar*(L/mol)**2
-   DOUBLE PRECISION, dimension(n), intent(in) :: bn   ! in L/mol
-   DOUBLE PRECISION, dimension(n), intent(in) :: delta1n  !only required for RKPR
-   DOUBLE PRECISION, dimension(n), intent(in) :: k_or_mn  ! k for RKPR ; m for SRK/PR
+   double precision, dimension(n), intent(in) :: acn  ! in bar*(L/mol)**2
+   double precision, dimension(n), intent(in) :: bn   ! in L/mol
+   double precision, dimension(n), intent(in) :: delta1n  !only required for RKPR
+   double precision, dimension(n), intent(in) :: k_or_mn  ! k for RKPR ; m for SRK/PR
 
    ! interaction parameters matrices
-   DOUBLE PRECISION, dimension(n, n), intent(in) :: Kij_or_K0n
-   DOUBLE PRECISION, dimension(n, n), intent(in) :: Tstarn
-   DOUBLE PRECISION, dimension(n, n), intent(in) :: Lijn
+   double precision, dimension(n, n), intent(in) :: Kij_or_K0n
+   double precision, dimension(n, n), intent(in) :: Tstarn
+   double precision, dimension(n, n), intent(in) :: Lijn
 
    ! T, P and Density of the calculated envelope
-   DOUBLE PRECISION, dimension(800), intent(out) :: Tv
-   DOUBLE PRECISION, dimension(800), intent(out) :: Pv
-   DOUBLE PRECISION, dimension(800), intent(out) :: Dv
+   double precision, dimension(800), intent(out) :: Tv
+   double precision, dimension(800), intent(out) :: Pv
+   double precision, dimension(800), intent(out) :: Dv
 
    ! number of valid elements in Tv, Pv and Dv arrays
    integer, intent(out) :: n_points
@@ -952,36 +917,36 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
    ! positions of the last saturation points before each critical point
    integer, dimension(4), intent(out) :: icri
    ! T, P and Density of critical points
-   DOUBLE PRECISION, dimension(4), intent(out) :: Tcri
-   DOUBLE PRECISION, dimension(4), intent(out) :: Pcri
-   DOUBLE PRECISION, dimension(4), intent(out) :: Dcri
+   double precision, dimension(4), intent(out) :: Tcri
+   double precision, dimension(4), intent(out) :: Pcri
+   double precision, dimension(4), intent(out) :: Dcri
 
    ! number of valid elements in icri, Tcri, Pcri and Dcri arrays
    integer, intent(out) :: ncri
 
    ! Intermediate variables during calculation process
-   DOUBLE PRECISION, dimension(n) :: y, xx, w, PHILOGy, PHILOGx, PHILOGw
-   DOUBLE PRECISION, dimension(n) :: dxdB, dydB, dwdB, dxdKs, dydKs, dwdKs, aux
-   DOUBLE PRECISION, dimension(n) :: DLPHITx, DLPHIPx, DLPHITy, DLPHIPy, DLPHITw, DLPHIPw
-   DOUBLE PRECISION, dimension(n, n) :: FUGNx, FUGNy, FUGNw
+   double precision, dimension(n) :: y, xx, w, PHILOGy, PHILOGx, PHILOGw
+   double precision, dimension(n) :: dxdB, dydB, dwdB, dxdKs, dydKs, dwdKs, aux
+   double precision, dimension(n) :: DLPHITx, DLPHIPx, DLPHITy, DLPHIPy, DLPHITw, DLPHIPw
+   double precision, dimension(n, n) :: FUGNx, FUGNy, FUGNw
    integer, dimension(2*n + 3) :: ipiv
-   DOUBLE PRECISION, dimension(2*n + 3) :: X, Xold, delX, bd, F, dFdS, dXdS
-   DOUBLE PRECISION, dimension(2*n + 3) :: Fp, JACnumK2, JACnumKn, JACnumKs2, JACnumKsn, JACnumlT, JACnumlP, JACnumB
-   DOUBLE PRECISION, dimension(2*n + 3, 2*n + 3) :: JAC, AJ
-   DOUBLE PRECISION :: Vy, Vx, Vw
+   double precision, dimension(2*n + 3) :: X, Xold, delX, bd, F, dFdS, dXdS
+   double precision, dimension(2*n + 3) :: Fp, JACnumK2, JACnumKn, JACnumKs2, JACnumKsn, JACnumlT, JACnumlP, JACnumB
+   double precision, dimension(2*n + 3, 2*n + 3) :: JAC, AJ
+   double precision :: Vy, Vx, Vw
 !        DOUBLE PRECISION, dimension(2) :: TpairA, PpairA, TpairB, PpairB    ! crossing vars
    logical :: run, passingcri, Comp3ph  !, Cross                       ! crossing var (Cross)
 
-   DOUBLE PRECISION, dimension(nco, nco) :: Kij_or_K0, Tstar
-   DOUBLE PRECISION, dimension(nco) :: KFsep1
-   COMMON/CRIT/TC(nco), PC(nco), DCeos(nco), omg(nco)
-   COMMON/COMPONENTS/ac(nco), b(nco), delta1(nco), rk_or_m(nco), Kij_or_K0, NTDEP
-   COMMON/MODEL/NMODEL
-   COMMON/rule/ncomb
-   COMMON/bcross/bij(nco, nco)
-   COMMON/Tdep/Kinf, Tstar
-   COMMON/lowTKsep/KFsep1
-   COMMON/writeComp/Comp3ph, i1, i2
+   double precision, dimension(nco, nco) :: Kij_or_K0, Tstar
+   double precision, dimension(nco) :: KFsep1
+   common/CRIT/TC(nco), PC(nco), DCeos(nco), omg(nco)
+   common/COMPONENTS/ac(nco), b(nco), delta1(nco), rk_or_m(nco), Kij_or_K0, NTDEP
+   common/MODEL/NMODEL
+   common/rule/ncomb
+   common/bcross/bij(nco, nco)
+   common/Tdep/Kinf, Tstar
+   common/lowTKsep/KFsep1
+   common/writeComp/Comp3ph, i1, i2
    ! COMMON /DewCurve/ ilastDewC, TdewC(500), PdewC(500)     ! crossing vars
    ! COMMON /CrossingPoints/ Tcr1,Pcr1,Tcr2,Pcr2,KFcr1,Kscr1,KFcr2,Kscr2
 
@@ -1302,18 +1267,18 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
    print *, rho_x
    print *, rho_y
    print *, beta
-1  FORMAT(7F10.4, 2I4)
-3  FORMAT(3F10.4, 6E12.3)
+1  format(7F10.4, 2I4)
+3  format(3F10.4, 6E12.3)
 end subroutine envelope3
 
 subroutine EvalFEnvel3(n, z, X, F)
 
-   implicit DOUBLE PRECISION(A - H, O - Z)
-   DOUBLE PRECISION, dimension(n) :: KFACT, KFsep
-   DOUBLE PRECISION, dimension(n) :: z, y, xx, w, PHILOGy, PHILOGx, PHILOGw
-   DOUBLE PRECISION, dimension(n) :: DLPHITx, DLPHIPx, DLPHITy, DLPHIPy, DLPHITw, DLPHIPw
-   DOUBLE PRECISION, dimension(n, n) :: FUGNx, FUGNy, FUGNw
-   DOUBLE PRECISION, dimension(2*n + 3) :: X, F
+   implicit double precision(A - H, O - Z)
+   double precision, dimension(n) :: KFACT, KFsep
+   double precision, dimension(n) :: z, y, xx, w, PHILOGy, PHILOGx, PHILOGw
+   double precision, dimension(n) :: DLPHITx, DLPHIPx, DLPHITy, DLPHIPy, DLPHITw, DLPHIPw
+   double precision, dimension(n, n) :: FUGNx, FUGNy, FUGNw
+   double precision, dimension(2*n + 3) :: X, F
 
    S = 0.001
    KFACT = exp(X(:n))
