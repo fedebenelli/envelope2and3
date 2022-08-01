@@ -1,74 +1,74 @@
 subroutine read2PcubicNC(nc, nin, nout)
-   implicit DOUBLE PRECISION(A - H, O - Z)
-   PARAMETER(nco=64, RGAS=0.08314472d0)
+   implicit double precision(A - H, O - Z)
+   parameter(nco=64, RGAS=0.08314472d0)
    ! Critical constants must be given in K and bar
    ! b will be in L/mol and ac in bar*(L/mol)**2
-   DOUBLE PRECISION Kij(nco, nco), lij(nco, nco), Kinf(nco, nco), Tstar(nco, nco)
-   DOUBLE PRECISION Kinf1, Kinf2, K01, K02, lijk(nco, nco, nco)
+   double precision Kij(nco, nco), lij(nco, nco), Kinf(nco, nco), Tstar(nco, nco)
+   double precision Kinf1, Kinf2, K01, K02, lijk(nco, nco, nco)
    dimension ac(nco), b(nco), del1(nco), rm(nco), diam(nc), Vc(nc)
-   CHARACTER*18 fluid(nco)
-   COMMON/MODEL/NMODEL
-   COMMON/Vshift/iVshift, Vs(nco)    ! added June 2016
-   COMMON/CRIT/TC(nco), PC(nco), DCeos(nco), OM(nco)
-   COMMON/NAMES/fluid
-   COMMON/COMPONENTS/ac, b, del1, rm, Kij, NTdep
-   COMMON/COVOL/b1(nco)
-   COMMON/bcross/bij(nco, nco)
-   COMMON/Tdep/Kinf, Tstar
-   COMMON/bcrosscub/bijk(nco, nco, nco)
-   COMMON/rule/ncomb
-   COMMON/lforin/lij
+   character*18 fluid(nco)
+   common/MODEL/NMODEL
+   common/Vshift/iVshift, Vs(nco)    ! added June 2016
+   common/CRIT/TC(nco), PC(nco), DCeos(nco), OM(nco)
+   common/NAMES/fluid
+   common/COMPONENTS/ac, b, del1, rm, Kij, NTdep
+   common/COVOL/b1(nco)
+   common/bcross/bij(nco, nco)
+   common/Tdep/Kinf, Tstar
+   common/bcrosscub/bijk(nco, nco, nco)
+   common/rule/ncomb
+   common/lforin/lij
    read (NIN, *) ncomb, NTDEP
    Tstar = 0.d0
    third = 1.0D0/3
-   IF (nmodel .eq. 1) THEN
+   if (nmodel .eq. 1) then
       del1 = 1.0D0
       write (nout, *) ' Model: Soave-Redlich-Kwong (1972)'
-   ELSE
+   else
       del1 = 1.0D0 + sqrt(2.0)
       write (nout, *) ' Model: Peng-Robinson (1976)'
-   END IF
+   end if
    write (nout, *) ' Fluid           Tc(K)       Pc(bar)  Vceos(L/mol)    W'
    do i = 1, nc
-      READ (NIN, '(A)') fluid(i)
-      READ (NIN, *) Tc(i), Pc(i), OM(i), Vc(i)
+      read (NIN, '(A)') fluid(i)
+      read (NIN, *) Tc(i), Pc(i), OM(i), Vc(i)
       dceos(i) = 1/Vc(i)
       write (nout, 1) fluid(i), Tc(i), Pc(i), Vc(i), OM(i)
       if (iVshift == 1) then
-         READ (NIN, *) ac(i), b(i), rm(i), Vs(i)
+         read (NIN, *) ac(i), b(i), rm(i), Vs(i)
       else
-         READ (NIN, *) ac(i), b(i), rm(i)
+         read (NIN, *) ac(i), b(i), rm(i)
       end if
       Kij(i, i) = 0.0D0
       Lij(i, i) = 0.0D0
-      IF (i .gt. 1) then
+      if (i .gt. 1) then
          if (ncomb .lt. 2) then
-            READ (NIN, *) (Kij(j, i), j=1, i - 1)
+            read (NIN, *) (Kij(j, i), j=1, i - 1)
             Kij(i, :i - 1) = Kij(:i - 1, i)
-            if (NTDEP >= 1) READ (NIN, *) (Tstar(j, i), j=1, i - 1)
+            if (NTDEP >= 1) read (NIN, *) (Tstar(j, i), j=1, i - 1)
             Tstar(i, :i - 1) = Tstar(:i - 1, i)
-            if (NTDEP == 2) READ (NIN, *) (Kinf(j, i), j=1, i - 1)
+            if (NTDEP == 2) read (NIN, *) (Kinf(j, i), j=1, i - 1)
             Kinf(i, :i - 1) = Kinf(:i - 1, i)
-            READ (NIN, *) (lij(j, i), j=1, i - 1)
+            read (NIN, *) (lij(j, i), j=1, i - 1)
             lij(i, :i - 1) = lij(:i - 1, i)
          else
-            READ (NIN, *) K01, K02
-            if (NTDEP .ge. 1) READ (NIN, *) Kinf1, Kinf2
-            if (NTDEP .eq. 1) READ (NIN, *) Tstar1, Tstar2
-            if (NTDEP .eq. 2) READ (NIN, *) C1, C2
-            READ (NIN, *) Lijk(1, 1, 2), Lijk(1, 2, 2)
+            read (NIN, *) K01, K02
+            if (NTDEP .ge. 1) read (NIN, *) Kinf1, Kinf2
+            if (NTDEP .eq. 1) read (NIN, *) Tstar1, Tstar2
+            if (NTDEP .eq. 2) read (NIN, *) C1, C2
+            read (NIN, *) Lijk(1, 1, 2), Lijk(1, 2, 2)
          end if
-      END IF
+      end if
    end do
 !        Kinf = 0.d0   hidden bug!
    B1 = B
    write (nout, *) 'Fluid     ac(bar*L2/mol2)  b(L/mol)    d1      rm'
-   DO I = 1, NC
+   do I = 1, NC
       write (nout, 1) fluid(i), ac(i), b(i), del1(i), rm(i)
-   END DO
+   end do
    write (NOUT, *)
    if (ncomb .lt. 2) then
-      if (NTDEP .EQ. 0) then
+      if (NTDEP .eq. 0) then
 !                  write(NOUT,*)' K12 = ',Kij(1,2)
 !                  write(NOUT,*)
          write (NOUT, *) '  Kij MATRIX'
@@ -81,23 +81,23 @@ subroutine read2PcubicNC(nc, nin, nout)
 !                        write(NOUT,*)'Tstar = ',Tstar
 !                        write(NOUT,*)
       end if
-      DO I = 1, NC
+      do I = 1, NC
          write (NOUT, 6) FLUID(I), (Kij(j, i), j=1, i - 1)
-      END DO
+      end do
       if (NTDEP .eq. 1) then
          write (NOUT, *)
          write (NOUT, *) '  T* MATRIX'
-         DO I = 1, NC
+         do I = 1, NC
             write (NOUT, 6) FLUID(I), (Tstar(j, i), j=1, i - 1)
-         END DO
+         end do
       end if
       write (NOUT, *)
       write (NOUT, *) '  LIJ MATRIX'
-      DO I = 1, NC
+      do I = 1, NC
          write (NOUT, 6) FLUID(I), (Lij(j, i), j=1, i - 1)
-      END DO
+      end do
    else
-      if (NTDEP .EQ. 0) then
+      if (NTDEP .eq. 0) then
          write (NOUT, *) ' Kijk:     112      122'
          write (NOUT, 7) K01, K02
          write (NOUT, *)
@@ -112,7 +112,7 @@ subroutine read2PcubicNC(nc, nin, nout)
          write (NOUT, 8) Tstar1, Tstar2
          write (NOUT, *)
       end if
-      if (NTDEP .EQ. 2) then
+      if (NTDEP .eq. 2) then
          write (NOUT, *) ' Cijk:     112      122'
          write (NOUT, 7) C1, C2
          write (NOUT, *)
@@ -126,10 +126,10 @@ subroutine read2PcubicNC(nc, nin, nout)
    if (ncomb .eq. 0) then
       write (NOUT, *) ' 0: Classical or van der Waals '
       do i = 1, nc
-      do j = i, nc
-         bij(i, j) = (1 - lij(i, j))*(b(i) + b(j))/2
-         bij(j, i) = bij(i, j)
-      end do
+         do j = i, nc
+            bij(i, j) = (1 - lij(i, j))*(b(i) + b(j))/2
+            bij(j, i) = bij(i, j)
+         end do
       end do
    else if (ncomb .eq. 3) then
       do i = 1, nc
@@ -158,30 +158,30 @@ subroutine read2PcubicNC(nc, nin, nout)
          diam(i) = b(i)**third
       end do
       do i = 1, nc
-      do j = i, nc
-         bij(i, j) = ((1 - lij(i, j))*(diam(i) + diam(j))/2)**3
-         bij(j, i) = bij(i, j)
-      end do
+         do j = i, nc
+            bij(i, j) = ((1 - lij(i, j))*(diam(i) + diam(j))/2)**3
+            bij(j, i) = bij(i, j)
+         end do
       end do
    end if
-1  FORMAT(A18, F8.3, 5x, F7.3, 3x, F7.3, 3x, F7.3)
-5  FORMAT(A18, F6.3)
-6  FORMAT(A18, 20F10.5)
-7  FORMAT(9x, F7.4, 2x, F7.4)
-8  FORMAT(9x, F7.2, 2x, F7.2)
+1  format(A18, F8.3, 5x, F7.3, 3x, F7.3, 3x, F7.3)
+5  format(A18, F6.3)
+6  format(A18, 20F10.5)
+7  format(9x, F7.4, 2x, F7.4)
+8  format(9x, F7.2, 2x, F7.2)
 end
 
-SUBROUTINE HelmSRKPR(nc, ND, NT, rn, V, T, Ar, ArV, ArTV, ArV2, Arn, ArVn, ArTn, Arn2)
-   IMPLICIT DOUBLE PRECISION(A - H, O - Z)
-   PARAMETER(nco=64, RGAS=0.08314472d0)
+subroutine HelmSRKPR(nc, ND, NT, rn, V, T, Ar, ArV, ArTV, ArV2, Arn, ArVn, ArTn, Arn2)
+   implicit double precision(A - H, O - Z)
+   parameter(nco=64, RGAS=0.08314472d0)
    dimension rn(nc), Arn(nc), ArVn(nc), ArTn(nc), Arn2(nc, nc)
    dimension dBi(nc), dBij(nc, nc)
    dimension dDi(nc), dDij(nc, nc), dDiT(nc)
    dimension aij(nc, nc), daijdT(nc, nc), daijdT2(nc, nc)
-   DOUBLE PRECISION Kij(nco, nco)
+   double precision Kij(nco, nco)
    dimension ac(nco), b(nco), del1(nco), rm(nco)
-   COMMON/COMPONENTS/ac, b, del1, rm, Kij, NTdep
-   COMMON/rule/ncomb
+   common/COMPONENTS/ac, b, del1, rm, Kij, NTdep
+   common/rule/ncomb
    TOTN = sum(rn)
    D1 = del1(1)
    D2 = (1 - D1)/(1 + D1)
@@ -213,22 +213,22 @@ SUBROUTINE HelmSRKPR(nc, ND, NT, rn, V, T, Ar, ArV, ArTV, ArV2, Arn, ArVn, ArTn,
    do i = 1, nc
       Arn(i) = -g*T + FFB*dBi(i) - f*dDi(i)
       ArVn(i) = -gv*T + FFBV*dBi(i) - fv*dDi(i)
-      IF (ND .EQ. 2) THEN
-      do j = 1, i
-         Arn2(i, j) = AUX*(dBi(i) + dBi(j)) - fB*(dBi(i)*dDi(j) + dBi(j)*dDi(i)) &
-                      + FFB*dBij(i, j) + FFBB*dBi(i)*dBi(j) - f*dDij(i, j)
-         Arn2(j, i) = Arn2(i, j)
-      end do
-      END IF
+      if (ND .eq. 2) then
+         do j = 1, i
+            Arn2(i, j) = AUX*(dBi(i) + dBi(j)) - fB*(dBi(i)*dDi(j) + dBi(j)*dDi(i)) &
+                         + FFB*dBij(i, j) + FFBB*dBi(i)*dBi(j) - f*dDij(i, j)
+            Arn2(j, i) = Arn2(i, j)
+         end do
+      end if
    end do
 ! TEMPERATURE DERIVATIVES
-   IF (NT .EQ. 1) THEN
+   if (NT .eq. 1) then
       ArT = -TOTN*g - dDdT*f
       ArTV = -TOTN*gv - dDdT*fV
       ArTT = -dDdT2*f
       do i = 1, nc
          ArTn(i) = -g + (TOTN*AUX/T - dDdT*fB)*dBi(i) - f*dDiT(i)
       end do
-   END IF
+   end if
 end
 
