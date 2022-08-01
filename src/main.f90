@@ -1,11 +1,11 @@
 
 ! Listado de commons utilizados, que podrían pasar a un módulo:
-!   COMMON /CRIT/TC(nco),PC(nco),DCeos(nco),omg(nco)
-!        COMMON /COMPONENTS/ ac(nco),b(nco),delta1(nco),rk(nco),Kij_or_K0,NTDEP
-!        COMMON /MODEL/ NMODEL
-!        COMMON /rule/ncomb
-!        COMMON /bcross/bij(nco,nco)
-!        COMMON /Tdep/ Kinf,Tstar
+!   common /CRIT/TC(nco),PC(nco),DCeos(nco),omg(nco)
+!        common /COMPONENTS/ ac(nco),b(nco),delta1(nco),rk(nco),Kij_or_K0,NTDEP
+!        common /MODEL/ NMODEL
+!        common /rule/ncomb
+!        common /bcross/bij(nco,nco)
+!        common /Tdep/ Kinf,Tstar
 module constants
    implicit none
 
@@ -17,9 +17,11 @@ program calc_envelope2and3
    implicit double precision(A - H, O - Z)
    logical Comp3ph
    common/writeComp/Comp3ph, i1, i2
+
    open (1, FILE='envelIN.txt')
    open (2, FILE='envelOUT.txt')
    read (1, *) N
+
    !write (6, *) 'write extra output with compositions for 2 compounds along 3-phase lines?'
    !write (6, *) 'Enter 1 for YES. Otherwise, any other number.'
    ! read (5, *) i
@@ -42,13 +44,15 @@ subroutine readcase(n)
    use constants
    use dtypes, only: envelope, kfcross, cross
    use array_operations, only: find_cross
+
    implicit double precision(A - H, O - Z)
+
    parameter(nco=64, Pmax=700.0)
    dimension z(n), xx(n), w(n)
 
    double precision Kinf
    double precision, dimension(n) :: Kfact, KFsep
-   double precision, dimension(nco) :: KFcr1, Kscr1, KFcr2, Kscr2, KlowT, PHILOGxlowT, KFsep1 ! go in COMMONS (cannot have n dimension)
+   double precision, dimension(nco) :: KFcr1, Kscr1, KFcr2, Kscr2, KlowT, PHILOGxlowT, KFsep1 ! go in commonS (cannot have n dimension)
    ! pure compound physical constants
    double precision, dimension(n) :: tcn
    double precision, dimension(n) :: pcn
@@ -102,9 +106,9 @@ subroutine readcase(n)
    common/Tdep/Kinf, Tstar
    common/lforin/lij
    common/DewCurve/ilastDewC, TdewC(800), PdewC(800), dewK(800, nco)
-   !COMMON/CrossingPoints/Tcr1, Pcr1, Tcr2, Pcr2, KFcr1, Kscr1, KFcr2, Kscr2
+   !common/CrossingPoints/Tcr1, Pcr1, Tcr2, Pcr2, KFcr1, Kscr1, KFcr2, Kscr2
    common/lowTbub/TlowT, PlowT, KlowT, PHILOGxlowT !shared with envelope2
-   !COMMON/lowTKsep/KFsep1     !shared with envelope3
+   !common/lowTKsep/KFsep1     !shared with envelope3
 
    type(envelope) :: dew_envelope, low_t_envelope, high_p_envelope
 
@@ -324,6 +328,7 @@ subroutine readcase(n)
       else
          P = 1.1*P
       end if
+      
 !          yn = xx(n)*KFACT(n)
 !          do while (yn>2.0)
       do while (abs(dif) > 0.1 .and. P > 0.9)
@@ -496,7 +501,7 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
 
    ! estimated K factors for first point (then used for every point)
    double precision, dimension(n) :: KFACT
-   double precision, dimension(nco) :: KFcr1, Kscr1, KFcr2, Kscr2, KlowT, PHILOGxlowT ! go in COMMONS (cannot have n dimension)
+   double precision, dimension(nco) :: KFcr1, Kscr1, KFcr2, Kscr2, KlowT, PHILOGxlowT ! go in commonS (cannot have n dimension)
 
    ! composition of the system
    double precision, dimension(n), intent(in) :: z
@@ -947,8 +952,8 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
    common/Tdep/Kinf, Tstar
    common/lowTKsep/KFsep1
    common/writeComp/Comp3ph, i1, i2
-   ! COMMON /DewCurve/ ilastDewC, TdewC(500), PdewC(500)     ! crossing vars
-   ! COMMON /CrossingPoints/ Tcr1,Pcr1,Tcr2,Pcr2,KFcr1,Kscr1,KFcr2,Kscr2
+   ! common /DewCurve/ ilastDewC, TdewC(500), PdewC(500)     ! crossing vars
+   ! common /CrossingPoints/ Tcr1,Pcr1,Tcr2,Pcr2,KFcr1,Kscr1,KFcr2,Kscr2
 
 ! Charging the commons(nco) from input arguments (n)
    NMODEL = model
@@ -1025,6 +1030,7 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
       iter = 0
       max_iter = 100
       reps = 0
+
       do while (maxval(abs(delX)) > 1.d-5 .and. iter <= max_iter)
          iter = iter + 1
          ! nc,MTYP,INDIC,T,P,rn,V,PHILOG,DLPHI,DLPHIP,DLPHIT,FUGN
