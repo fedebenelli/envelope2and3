@@ -459,27 +459,6 @@ subroutine WriteEnvel(n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
    close (out_i)
 end subroutine WriteEnvel
 
-subroutine CheckCross(XpairA, YpairA, XpairB, YpairB, Cross, Xcr, Ycr)
-!   For given consecutive pairs of points along two different curves A and B, this subroutine:
-!   1) Finds the straight line equation connecting each pair of points ( Y = c*X + d )
-!   2) Determines whether there is a crossing between the two segments
-   implicit double precision(A - H, O - Z)
-   double precision, dimension(2) :: XpairA, YpairA, XpairB, YpairB
-   logical :: run, passingcri, Cross
-   Cross = .false.
-   cA = (YpairA(2) - YpairA(1))/(XpairA(2) - XpairA(1))
-   dA = YpairA(1) - cA*XpairA(1)
-   cB = (YpairB(2) - YpairB(1))/(XpairB(2) - XpairB(1))
-   dB = YpairB(1) - cB*XpairB(1)
-   Xcr = (dB - dA)/(cA - cB)
-   if ((Xcr - XpairA(1))*(Xcr - XpairA(2)) < 0) then
-      if ((Xcr - XpairB(1))*(Xcr - XpairB(2)) < 0) then
-         Cross = .true.
-         Ycr = cA*Xcr + dA
-      end if
-   end if
-end subroutine CheckCross
-
 subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn, k_or_mn, delta1n, &
                      Kij_or_K0n, Tstarn, Lijn, n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri, &
                      this_envelope)
@@ -696,47 +675,6 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
          if (P < Pv(i - 1) .and. P < maxP/5 .and. T > 300) then
             run = .false.  ! to finish envelope going to low T bubble
          end if
-
-         if (Tcr1 == 0.d0) then
-            if (minmaxT) then ! check for self-crossing of the envelope
-               iD = imin
-               do while (Tv(iD) < Tv(i - 1))
-                  iD = iD - 1
-               end do
-               if (abs(Pv(iD) - P) < 10) then
-                  TpairA = [Tv(iD + 1), Tv(iD)]
-                  PpairA = [Pv(iD + 1), Pv(iD)]
-                  TpairB = [Tv(i - 1), T]
-                  PpairB = [Pv(i - 1), P]
-                  call CheckCross(TpairA, PpairA, TpairB, PpairB, Cross, Tcr, Pcr)
-                  if (Cross) then
-                     Tcr1 = Tcr
-                     Pcr1 = Pcr
-                     KFcr1(1:n) = XOLD(1:n) + (X(1:n) - XOLD(1:n))*(Tcr - Told)/(T - Told)
-                     Kscr1(1:n) = dewK(iD, :n) + (dewK(iD + 1, :n) - dewK(iD, :n))*(Tcr - TpairA(2))/(TpairA(1) - TpairA(2))
-                  end if
-                  if (.not. cross) then
-                     if (Tcr > Tv(i - 1)) then  ! try with the previous step
-                        TpairB = [Tv(i - 2), Tv(i - 1)]
-                        PpairB = [Pv(i - 2), Pv(i - 1)]
-                        call CheckCross(TpairA, PpairA, TpairB, PpairB, Cross, Tcr, Pcr)
-                        if (Cross) then
-                           Tcr1 = Tcr
-                           Pcr1 = Pcr
-                           KFcr1(1:n) = XOLD2(1:n) + (XOLD(1:n) - XOLD2(1:n))*(Tcr - Told2)/(Told - Told2)
-                           Kscr1(1:n) = dewK(iD, :n) + (dewK(iD + 1, :n) - dewK(iD, :n))*(Tcr - TpairA(2))/(TpairA(1) - TpairA(2))
-                        end if
-                     end if
-                  end if
-               end if
-            else if (minT) then  ! check for max after minT, which could indicate that a crossing is coming
-               if (Told > T .and. Told > Told2) minmaxT = .true.
-            else    ! check for minT
-               if (Told < T .and. Told < Told2) minT = .true.
-               if (minT) imin = i - 1
-            end if
-         end if
-
       end if
 
       print *, T, P, ns, iter
