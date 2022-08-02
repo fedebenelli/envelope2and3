@@ -1,3 +1,9 @@
+module constants
+   implicit none
+
+   integer, parameter :: wp = kind(0.0q1)
+end module constants
+
 module dtypes
    use constants
 

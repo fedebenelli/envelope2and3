@@ -6,11 +6,6 @@
 !        common /rule/ncomb
 !        common /bcross/bij(nco,nco)
 !        common /Tdep/ Kinf,Tstar
-module constants
-   implicit none
-
-   integer, parameter :: wp = kind(0.0q1)
-end module constants
 
 
 program calc_envelope2and3
