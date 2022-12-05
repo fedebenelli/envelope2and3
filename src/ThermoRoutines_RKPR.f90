@@ -422,6 +422,7 @@ subroutine TERMO(nc, MTYP, INDIC, T, P, rn, V, PHILOG, DLPHIP, DLPHIT, FUGN)
    call ArVnder(nc, NDER, NTEMP, rn, V, T, Ar, ArV, ArTV, ArV2, Arn, ArVn, ArTn, Arn2)
    DPV = -ArV2 - RT*TOTN/V**2
    DPDT = -ArTV + TOTN*RGAS/V
+   
    do I = 1, NC
       PHILOG(I) = -log(Z) + Arn(I)/RT
       DPDN(I) = RT/V - ArVn(I)
@@ -430,6 +431,7 @@ subroutine TERMO(nc, MTYP, INDIC, T, P, rn, V, PHILOG, DLPHIP, DLPHIT, FUGN)
          DLPHIT(I) = (ArTn(I) - Arn(I)/T)/RT + DPDN(I)*DPDT/DPV/RT + 1.D0/T
       end if
    end do
+
    if (NDER .ge. 2) then
       do I = 1, NC
          do K = I, NC

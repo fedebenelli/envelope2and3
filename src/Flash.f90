@@ -115,12 +115,13 @@ subroutine flash(spec, FIRST, model, n, z, tcn, pcn, omgn, acn, bn, k_or_mn, del
    Pold = P
    Told2 = Told
    Told = T
-!        WRITE (2,3) (KFACT(i),i=1,N)
+   ! WRITE (2,3) (KFACT(i),i=1,N)
    call betato01(n, z, KFACT)  ! adapted 26/11/2014
    LOG_K = log(KFACT)
    ! now we must have  g0>0 and g1<0 and therefore 0<beta<1 (M&M page 252)
    call betalimits(n, z, KFACT, bmin, bmax)
    beta = (bmin + bmax)/2  ! first guess for beta
+
    ! Succesive sustitution loop starts here
    var_K = 1.0
    iter = 0
@@ -128,16 +129,20 @@ subroutine flash(spec, FIRST, model, n, z, tcn, pcn, omgn, acn, bn, k_or_mn, del
       if (maxval(abs(var_K)) > 1.10) then  ! 26/11/2014
          g0 = sum(z*KFACT) - 1.D0
          g1 = 1.D0 - sum(z/KFACT)
+
          if (g0 < 0 .or. g1 > 0) then  ! bring beta back to range, by touching KFACT
             call betato01(n, z, KFACT)
             call betalimits(n, z, KFACT, bmin, bmax)
             beta = (bmin + bmax)/2  ! new guess for beta
          end if
+
       end if
+
       iter = iter + 1
       ! Newton starts here (Rachford-Rice)
       g = 1.0
       step = 1.0
+
       do while (abs(g) > 1.d-5 .and. abs(step) > 1.d-10)
          denom = 1 + beta*(KFACT - 1.D0)
          g = sum(z*(KFACT - 1.D0)/denom)
@@ -149,16 +154,19 @@ subroutine flash(spec, FIRST, model, n, z, tcn, pcn, omgn, acn, bn, k_or_mn, del
             step = step/2
             beta = beta - step
          end do
+
       end do
+
       denom = 1 + beta*(KFACT - 1.D0)
       y = z*KFACT/denom
       x = y/KFACT
+
       ! new for TV Flash
       if (spec == 'TV' .or. spec == 'isoV') then     ! find Vy,Vx (vV and vL) from V balance and P equality equations
          dVydVl = -(1 - beta)/beta
          call Bcalc(n, x, T, Bx)
          if (Vx < Bx) Vx = 1.625*Bx  ! First evaluation will be with Vx = 1.5*Bx
-!                Pl = -1.0
+         ! Pl = -1.0
          call zTVTERMO(n, 0, T, x, Vx, Pl, DPVl, PHILOGy, DLPHIP, DLPHIT, FUGN)  ! 26/06/15
          do while (Pl < 0 .or. DPVl >= 0)
             Vx = Vx - 0.2*(Vx - Bx)
@@ -192,25 +200,30 @@ subroutine flash(spec, FIRST, model, n, z, tcn, pcn, omgn, acn, bn, k_or_mn, del
          if (stopflash .eqv. .true.) exit
          call zTVTERMO(n, 1, T, x, Vx, Pl, DPVl, PHILOGx, DLPHIP, DLPHIT, FUGN)
          call zTVTERMO(n, 1, T, y, Vy, Pv, DPVv, PHILOGy, DLPHIP, DLPHIT, FUGN)
-      else  ! for TP Flash
+      else  
+         ! for TP Flash
          ! nc,MTYP,INDIC,T,P,rn,V,PHILOG,DLPHI
          MTYP = 0    ! -1   (with 0, generalized also fo LL and not only VL)
          call TERMO(n, MTYP, 1, T, P, y, Vy, PHILOGy, DLPHIP, DLPHIT, FUGN)
          MTYP = 1
          call TERMO(n, MTYP, 1, T, P, x, Vx, PHILOGx, DLPHIP, DLPHIT, FUGN)
       end if
+
       varKold = var_K
       logKold = LOG_K ! From previous iteration step
       var_K = PHILOGx - PHILOGy - LOG_K  ! variation in LOG_K = new - old
       LOG_K = PHILOGx - PHILOGy
       aux = sum(var_K + varKold)
+
       if (iter > 10 .and. abs(aux) < 0.05) then ! oscilation behavior detected (27/06/15)
          LOG_K = (LOG_K + logKold)/2
       end if
+
       KFACT = exp(LOG_K)
       call betalimits(n, z, KFACT, bmin, bmax)  ! 26/06/15
    end do
-!        WRITE (2,4) (KFACT(i),i=1,N)
+
+   !  WRITE (2,4) (KFACT(i),i=1,N)
    rho_x = 1/Vx
    rho_y = 1/Vy
    if (spec == 'TP') v = beta*Vy + (1 - beta)*Vx
@@ -281,7 +294,7 @@ subroutine betalimits(n, z, KFACT, bmin, bmax)
    in = 0
    ix = 0
    vmin = 0.d0
-!       vmax=1.001d0   ! modified  3/3/15 (not to generate false separations with beta 0.9999...)
+   ! max=1.001d0    ! modified  3/3/15 (not to generate false separations with beta 0.9999...)
    vmax = 1.00001d0 ! modified 28/6/15 (to prevent overshooting in the Newton for solving RR eq.)
    do i = 1, n
       if (KFACT(i)*z(i) > 1) then
@@ -296,4 +309,3 @@ subroutine betalimits(n, z, KFACT, bmin, bmax)
    bmax = minval(vmax)
 
 end subroutine betalimits
-

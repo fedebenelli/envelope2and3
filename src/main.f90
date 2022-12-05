@@ -332,29 +332,37 @@ subroutine readcase(n)
          call TERMO(n, 1, 1, T, P, xx, Vx, PHILOGx, DLPHIPy, DLPHITy, FUGNy)
          call TERMO(n, 1, 1, T, P, y, Vy, PHILOGy, DLPHIPy, DLPHITy, FUGNy)
          dold = dif
+
          dif = PHILOGy(n) - (PHILOGx(n) + log(xx(n)))
+
          aux = P
-         P = max(P/10, Pold - dold*(P - Pold)/(dif - dold))
+
          Pold = aux
       end do
+
       if (abs(dif) > 0.1) then
          FIRST = .true.
          Told = T
          T = T + 10.0
       end if
+
       do while (abs(dif) > 0.1)
          call flash(spec, FIRST, nmodel, n, z, tcn, pcn, omgn, acn, bn, k_or_mn, delta1n, &
                     Kij_or_K0n, Tstarn, Lijn, t, p, v, xx, w, rho_x, rho_y, beta, iter)
          call TERMO(n, 1, 1, T, P, xx, Vx, PHILOGx, DLPHIPy, DLPHITy, FUGNy)
          call TERMO(n, 1, 1, T, P, y, Vy, PHILOGy, DLPHIPy, DLPHITy, FUGNy)
          dold = dif
+
          dif = PHILOGy(n) - (PHILOGx(n) + log(xx(n)))
+
          aux = T
          T = min(Told - dold*(T - Told)/(dif - dold), T + 20.0)
          Told = aux
       end do
+
       KFACT = exp(PHILOGx - PHILOGy)
       KFsep = w/xx
+
       call envelope3(ichoice, nmodel, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, omgn, acn, bn, k_or_mn, delta1n, &
                      Kij_or_K0n, Tstarn, Lijn, n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
       call WriteEnvel(n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
@@ -377,6 +385,7 @@ subroutine readcase(n)
       beta = 0.0d0
       KFACT = exp(Kscr1(:n)) ! now y (incipient phase in envelope3) will be the second liquid
       KFsep = exp(KFcr1(:n)) ! w will be vapor, with phase fraction beta
+      
       call envelope3(ichoice, nmodel, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, omgn, acn, bn, k_or_mn, delta1n, &
                      Kij_or_K0n, Tstarn, Lijn, n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
       call WriteEnvel(n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
@@ -404,6 +413,7 @@ subroutine readcase(n)
       call envelope3(ichoice, nmodel, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, omgn, acn, bn, k_or_mn, delta1n, &
                      Kij_or_K0n, Tstarn, Lijn, n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
       call WriteEnvel(n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
+      
    end if
 
 end subroutine readcase
@@ -579,6 +589,7 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
    X(n + 2) = log(P)
    iy = 1
    ix = 1
+
    if (ichoice <= 2) then  ! low T bub (1) or dew (2)
       if (ichoice == 1) iy = -1
       if (ichoice == 2) ix = -1  ! x will be vapor phase during the first part, and liquid after a critical point is crossed
@@ -594,6 +605,7 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
       y = 0.d0
       y(n) = 1.d0
    end if
+
    Xold = 0.d0
    dFdS = 0.d0
    dFdS(n + 2) = -1.d0
@@ -629,6 +641,7 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
             print *, "error with dgesv in parameter ", info, "540"
          end if
          delX = bd
+
          if (i == 1) then
             do while (maxval(abs(delX)) > 5.0)   ! Too large Newton step --> Reduce it
                delX = delX/2
@@ -652,7 +665,8 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
          KFACT = exp(X(:n))
          y = z*KFACT
          T = exp(X(n + 1))
-         P = exp(X(n + 2))
+         P = exp(X(n + 2))       
+
       end do
       ! Point converged (unless it jumped out because of high number of iterations)
       if (ichoice == 2) dewK(i, :n) = X(:n)
@@ -790,24 +804,22 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
 end subroutine envelope2
 
 subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, omgn, acn, bn, k_or_mn, delta1n, &
-                     Kij_or_K0n, Tstarn, Lijn, n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
+   ! Routine for tracing the boundaries of a three-phase region, starting from a known previously detected point.
+   ! Developed as an extension and modification of "envelope2". March 2017.
 
-! Routine for tracing the boundaries of a three-phase region, starting from a known previously detected point.
-! Developed as an extension and modification of "envelope2". March 2017.
+   !   In the main case (ichoice=1) y, xx and w denote molar fractions in the following phases:
+   !   y: vapor (incipient phase)
+   !  xx: hydrocarbon liquid
+   !   w: the other liquid (e.g. aqueous of asphaltenic phase)
+   !   beta is the fraction of w phase. Then we have (1-beta) of xx phase and 0 of y (incipient phase)
+   !   KFACT = y/xx
+   !   KFsep = w/xx
 
-!   In the main case (ichoice=1) y, xx and w denote molar fractions in the following phases:
-!   y: vapor (incipient phase)
-!  xx: hydrocarbon liquid
-!   w: the other liquid (e.g. aqueous of asphaltenic phase)
-!   beta is the fraction of w phase. Then we have (1-beta) of xx phase and 0 of y (incipient phase)
-!   KFACT = y/xx
-!   KFsep = w/xx
+   !   ichoice=2 is used for cases where the incipient phase "y" is the 2nd liquid.
+   !   w will correspond to vapor phase, with fraction beta
 
-!   ichoice=2 is used for cases where the incipient phase "y" is the 2nd liquid.
-!   w will correspond to vapor phase, with fraction beta
-
-!   ichoice=3 is used for cases where the initial saturated phase "xx" is the vapor (e.g. OilB with water from Lindeloff-Michelsen).
-!   y and w will correspond to the two liquid phases, with a beta fraction for w.
+   !   ichoice=3 is used for cases where the initial saturated phase "xx" is the vapor (e.g. OilB with water from Lindeloff-Michelsen).
+   !   y and w will correspond to the two liquid phases, with a beta fraction for w.
 
    implicit double precision(A - H, O - Z)
    parameter(nco=64)
@@ -888,7 +900,7 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
    ! common /DewCurve/ ilastDewC, TdewC(500), PdewC(500)     ! crossing vars
    ! common /CrossingPoints/ Tcr1,Pcr1,Tcr2,Pcr2,KFcr1,Kscr1,KFcr2,Kscr2
 
-! Charging the commons(nco) from input arguments (n)
+   ! Charging the commons(nco) from input arguments (n)
    NMODEL = model
    TC(:n) = tcn
    PC(:n) = pcn
@@ -909,7 +921,7 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
          bij(j, i) = bij(i, j)
       end do
    end do
-!
+   !
    !-----------------------------------------------------------
 
    ! Continuation method for tracing the envelope starts here
@@ -925,9 +937,9 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
    X(2*n + 2) = log(P)
    X(2*n + 3) = beta
 
-!
+   !
    ! To test Jacobian insert here block for numerical derivatives at the end of this code
-!
+   !
 
    iy = 1
    ix = 1
@@ -950,6 +962,7 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
    xx = z/(1 - beta + beta*KFsep)
    y = KFACT*xx
    w = KFsep*xx
+
    Xold = 0.d0
    dFdS = 0.d0
    dFdS(2*n + 3) = -1.d0
@@ -1079,6 +1092,7 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
       Dv(i) = 1/Vx    ! saturated phase density
       rho_x = 1/Vx
       rho_y = 1/Vy    ! incipient phase density
+
       if (sum(X(:n)*Xold(:n)) < 0) then  ! critical point detected between x and y phases
          ncri = ncri + 1
          icri(ncri) = i - 1
@@ -1089,6 +1103,7 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
          iy = -iy
          ix = -yx
       end if
+
       if (sum(X(n + 1:2*n)*Xold(n + 1:2*n)) < 0) then  ! critical point detected between x and w phases
          ncri = ncri + 1
          icri(ncri) = i - 1
@@ -1099,6 +1114,7 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
          iw = -iw
          ix = -yx
       end if
+
       if (run) then
          ! Calculation of sensitivities (dXdS)
          ! dgesv( n, nrhs, a, lda, ipiv, b, ldb, info )
@@ -1199,8 +1215,9 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
             run = .false.
          end if
       end if
+
    end do
-   n_points = i
+   
    !-----------------------------------------------------------
 
    print *, y
