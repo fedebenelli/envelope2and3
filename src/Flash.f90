@@ -221,6 +221,11 @@ subroutine flash(spec, FIRST, model, n, z, tcn, pcn, omgn, acn, bn, k_or_mn, del
 
       KFACT = exp(LOG_K)
       call betalimits(n, z, KFACT, bmin, bmax)  ! 26/06/15
+
+      if ((beta < bmin) .or. (bmax < beta)) then
+         beta = (bmin + bmax)/2
+      end if
+
    end do
 
    !  WRITE (2,4) (KFACT(i),i=1,N)
