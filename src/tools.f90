@@ -14,7 +14,7 @@ contains
       write (id_str, *) id
       outfile = trim(trim(str)//adjustl(id_str))//'.txt'
    end function
-end module
+end module file_operations
 
 module array_operations
    use constants
@@ -24,15 +24,15 @@ contains
 
    subroutine find_cross(tv1, tv2, pv1, pv2, crossings)
       use dtypes, only: cross
-        !! Find crossings between two given lines
-        !!
-        !! Returns an array of crossigns, containings the crosses found. Each row
-        !! contains the data from each found cross
-        !!
-        !!  | --------| ------- | ---------------- | ----------------- |
-        !!  | x_cross | y_cross | first_line_index | second_line_index |
-        !!  | --------| ------- | ---------------- | ----------------- |
-        !!
+      !! Find crossings between two given lines
+      !!
+      !! Returns an array of crossigns, containings the crosses found. Each row
+      !! contains the data from each found cross
+      !!
+      !!  | --------| ------- | ---------------- | ----------------- |
+      !!  | x_cross | y_cross | first_line_index | second_line_index |
+      !!  | --------| ------- | ---------------- | ----------------- |
+      !!
 
       real(8), allocatable, intent(in)  :: tv1(:)  !! First line x values
       real(8), allocatable, intent(in)  :: tv2(:)  !! Second line x values
@@ -97,6 +97,7 @@ contains
                   print *, "CROSS: Repeated cross, skipping..."
                   cycle
                end if
+
                current_cross = cross(x_cross, y_cross, i, j)
                n = n + 1
 
@@ -128,4 +129,14 @@ contains
       array = tmp_array
    end subroutine append_2d
 
-end module
+end module array_operations
+
+module logic
+   contains
+   function exor(A, B) result(C)
+      logical :: A, B
+      logical :: C
+
+      C = (A .or. (.not. B)) .and. ((.not. A) .or. B)
+   end function exor
+end module logic
