@@ -149,8 +149,8 @@ subroutine flash(spec, FIRST, model, n, z, tcn, pcn, omgn, acn, bn, k_or_mn, del
          dg = -sum(z*(KFACT - 1.D0)**2/denom**2)
          step = -g/dg
          beta = beta + step
-         !if(beta<bmin.or.beta>bmax)beta = beta - step/2
-         do while ((beta < bmin .or. beta > bmax) .and. step .ne. 0.d0) ! much better (GUARANTED!) 3/3/15
+
+         do while ((beta < bmin .or. bmax < beta) .and. step .ne. 0.d0) ! much better (GUARANTED!) 3/3/15
             step = step/2
             beta = beta - step
          end do
