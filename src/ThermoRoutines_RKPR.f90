@@ -137,6 +137,7 @@ subroutine readRKPRNC(nc, nin, nout)
          end do
       end do
    end if
+
 6  format(A18, 20F10.5)
 7  format(9x, F7.4, 2x, F7.4)
 8  format(9x, F7.2, 2x, F7.2)

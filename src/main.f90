@@ -80,7 +80,8 @@ end module envelopes
 
 
 program calc_envelope2and3
-   implicit double precision(A - H, O - Z)
+   use constants
+   implicit real(pr)(A - H, O - Z)
    logical Comp3ph
    common/writeComp/Comp3ph, i1, i2
 
@@ -111,36 +112,40 @@ subroutine readcase(n)
    use dtypes, only: envelope, kfcross, cross
    use array_operations, only: find_cross
 
-   implicit double precision(A - H, O - Z)
+   implicit real(pr)(A - H, O - Z)
+   ! implicit none
 
-   parameter(nco=64, Pmax=700.0)
-   dimension z(n), xx(n), w(n)
+   integer, parameter :: nco=64
+   real(pr), parameter :: Pmax=700
+   integer, intent(in) :: n
 
-   double precision Kinf
-   double precision, dimension(n) :: Kfact, KFsep
-   double precision, dimension(nco) :: KFcr1, Kscr1, KFcr2, Kscr2, KlowT, PHILOGxlowT, KFsep1 ! go in commonS (cannot have n dimension)
+   real(pr) :: z(n), xx(n), w(n)
+
+   real(pr) :: Kinf
+   real(pr), dimension(n) :: Kfact, KFsep
+   real(pr), dimension(nco) :: KFcr1, Kscr1, KFcr2, Kscr2, & 
+                               KlowT, PHILOGxlowT, KFsep1 ! go in commons (cannot have n dimension)
+   
    ! pure compound physical constants
-   double precision, dimension(n) :: tcn
-   double precision, dimension(n) :: pcn
-   double precision, dimension(n) :: omgn
+   real(pr), dimension(n) :: tcn, pcn, omgn
 
    ! eos parameters
-   double precision, dimension(n) :: acn  ! in bar*(L/mol)**2
-   double precision, dimension(n) :: bn   ! in L/mol
-   double precision, dimension(n) :: delta1n  !only required for RKPR
-   double precision, dimension(n) :: k_or_mn  ! k for RKPR ; m for SRK/PR
+   real(pr), dimension(n) :: acn  ! in bar*(L/mol)**2
+   real(pr), dimension(n) :: bn  ! in L/mol
+   real(pr), dimension(n) :: delta1n  !only required for RKPR
+   real(pr), dimension(n) :: k_or_mn  ! k for RKPR ; m for SRK/PR
 
    ! interaction parameters matrices
-   double precision, dimension(n, n) :: Kij_or_K0n, Lijn
-   double precision, dimension(n, n) :: Tstarn
+   real(pr), dimension(n, n) :: Kij_or_K0n, Lijn
+   real(pr), dimension(n, n) :: Tstarn
 
-   ! interaction parameters matrices
-   double precision, dimension(nco, nco) :: Kij_or_K0, Lij, Tstar
+   ! interaction parameters matrices in common
+   real(pr), dimension(nco, nco) :: Kij_or_K0, Lij, Tstar
 
    ! T, P and Density of the calculated envelope
-   double precision, dimension(800) :: Tv
-   double precision, dimension(800) :: Pv
-   double precision, dimension(800) :: Dv
+   real(pr), dimension(800) :: Tv
+   real(pr), dimension(800) :: Pv
+   real(pr), dimension(800) :: Dv
 
    ! number of valid elements in To, Po and Do arrays
    integer :: n_points
@@ -148,33 +153,32 @@ subroutine readcase(n)
    ! positions of the last saturation points before each critical point
    integer, dimension(4) :: icri
    ! T, P and Density of critical points
-   double precision, dimension(4) :: Tcri
-   double precision, dimension(4) :: Pcri
-   double precision, dimension(4) :: Dcri
+   real(pr), dimension(4) :: Tcri
+   real(pr), dimension(4) :: Pcri
+   real(pr), dimension(4) :: Dcri
 
    ! number of valid elements in icri, Tcri, Pcri and Dcri arrays
    integer :: ncri
 
-   double precision, dimension(n) :: y, PHILOGy, PHILOGx
-   double precision, dimension(n) :: DLPHITx, DLPHIPx, DLPHITy, DLPHIPy
-   double precision, dimension(n, n) :: FUGNx, FUGNy
+   real(pr), dimension(n) :: y, PHILOGy, PHILOGx
+   real(pr), dimension(n) :: DLPHITx, DLPHIPx, DLPHITy, DLPHIPy
+   real(pr), dimension(n, n) :: FUGNx, FUGNy
 
    type(cross), allocatable :: crossings(:)
 
    character*4 :: spec
    logical FIRST
 
-   common/MODEL/NMODEL
-   common/CRIT/TC(nco), PC(nco), DCeos(nco), omg(nco)
-   common/COMPONENTS/ac(nco), b(nco), delta1(nco), rk_or_m(nco), Kij_or_K0, NTDEP
-   common/rule/ncomb
-   common/bcross/bij(nco, nco)
-   common/Tdep/Kinf, Tstar
-   common/lforin/lij
-   common/DewCurve/ilastDewC, TdewC(800), PdewC(800), dewK(800, nco)
-   !common/CrossingPoints/Tcr1, Pcr1, Tcr2, Pcr2, KFcr1, Kscr1, KFcr2, Kscr2
-   common/lowTbub/TlowT, PlowT, KlowT, PHILOGxlowT !shared with envelope2
-   !common/lowTKsep/KFsep1     !shared with envelope3
+   common /MODEL/ NMODEL
+   common /CRIT/ TC(nco), PC(nco), DCeos(nco), omg(nco)
+   common /COMPONENTS/ ac(nco), b(nco), delta1(nco), rk_or_m(nco), Kij_or_K0, NTDEP
+   common /rule/ ncomb
+   common /bcross/ bij(nco, nco)
+   common /Tdep/ Kinf, Tstar
+   common /lforin/ lij
+   common /DewCurve/ ilastDewC, TdewC(800), PdewC(800), dewK(800, nco)
+   common /lowTbub/ TlowT, PlowT, KlowT, PHILOGxlowT !shared with envelope2
+
 
    type(envelope) :: dew_envelope, low_t_envelope, high_p_envelope
 
@@ -490,12 +494,13 @@ subroutine readcase(n)
 end subroutine readcase
 
 subroutine WriteEnvel(n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
+   use constants
    use file_operations, only: out_i, outfile
 
    ! T, P and Density of the calculated envelope
-   double precision, dimension(800) :: Tv
-   double precision, dimension(800) :: Pv
-   double precision, dimension(800) :: Dv
+   real(pr), dimension(800) :: Tv
+   real(pr), dimension(800) :: Pv
+   real(pr), dimension(800) :: Dv
 
    ! number of valid elements in To, Po and Do arrays
    integer :: n_points
@@ -504,9 +509,9 @@ subroutine WriteEnvel(n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
    integer, dimension(4) :: icri
 
    ! T, P and Density of critical points
-   double precision, dimension(4) :: Tcri
-   double precision, dimension(4) :: Pcri
-   double precision, dimension(4) :: Dcri
+   real(pr), dimension(4) :: Tcri
+   real(pr), dimension(4) :: Pcri
+   real(pr), dimension(4) :: Dcri
 
    ! number of valid elements in icri, Tcri, Pcri and Dcri arrays
    integer :: ncri
@@ -538,10 +543,10 @@ end subroutine WriteEnvel
 subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn, k_or_mn, delta1n, &
                      Kij_or_K0n, Tstarn, Lijn, n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri, &
                      this_envelope)
-
+   use constants
    use dtypes, only: envelope
 
-   implicit double precision(A - H, O - Z)
+   implicit real(pr)(A - H, O - Z)
    parameter(nco=64)
 
    ! M&M means the book by Michelsen and Mollerup, 2nd Edition (2007)
@@ -549,38 +554,38 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
    ! eos id, number of compounds in the system and starting point type
    integer, intent(in) :: model, n, ichoice
 
-   double precision Kinf
+   real(pr) Kinf
 
    ! estimated T and P for first point (then used for every point)
-   double precision :: T, P
+   real(pr) :: T, P
 
    ! estimated K factors for first point (then used for every point)
-   double precision, dimension(n) :: KFACT
-   double precision, dimension(nco) :: KFcr1, Kscr1, KFcr2, Kscr2, KlowT, PHILOGxlowT ! go in commonS (cannot have n dimension)
+   real(pr), dimension(n) :: KFACT
+   real(pr), dimension(nco) :: KFcr1, Kscr1, KFcr2, Kscr2, KlowT, PHILOGxlowT ! go in commonS (cannot have n dimension)
 
    ! composition of the system
-   double precision, dimension(n), intent(in) :: z
+   real(pr), dimension(n), intent(in) :: z
 
    ! pure compound physical constants
-   double precision, dimension(n), intent(in) :: tcn
-   double precision, dimension(n), intent(in) :: pcn
-   double precision, dimension(n), intent(in) :: omgn
+   real(pr), dimension(n), intent(in) :: tcn
+   real(pr), dimension(n), intent(in) :: pcn
+   real(pr), dimension(n), intent(in) :: omgn
 
    ! eos parameters
-   double precision, dimension(n), intent(in) :: acn  ! in bar*(L/mol)**2
-   double precision, dimension(n), intent(in) :: bn   ! in L/mol
-   double precision, dimension(n), intent(in) :: delta1n  !only required for RKPR
-   double precision, dimension(n), intent(in) :: k_or_mn  ! k for RKPR ; m for SRK/PR
+   real(pr), dimension(n), intent(in) :: acn  ! in bar*(L/mol)**2
+   real(pr), dimension(n), intent(in) :: bn   ! in L/mol
+   real(pr), dimension(n), intent(in) :: delta1n  !only required for RKPR
+   real(pr), dimension(n), intent(in) :: k_or_mn  ! k for RKPR ; m for SRK/PR
 
    ! interaction parameters matrices
-   double precision, dimension(n, n), intent(in) :: Kij_or_K0n
-   double precision, dimension(n, n), intent(in) :: Tstarn
-   double precision, dimension(n, n), intent(in) :: Lijn
+   real(pr), dimension(n, n), intent(in) :: Kij_or_K0n
+   real(pr), dimension(n, n), intent(in) :: Tstarn
+   real(pr), dimension(n, n), intent(in) :: Lijn
 
    ! T, P and Density of the calculated envelope
-   double precision, dimension(800), intent(out) :: Tv
-   double precision, dimension(800), intent(out) :: Pv
-   double precision, dimension(800), intent(out) :: Dv
+   real(pr), dimension(800), intent(out) :: Tv
+   real(pr), dimension(800), intent(out) :: Pv
+   real(pr), dimension(800), intent(out) :: Dv
 
    ! number of valid elements in Tv, Pv and Dv arrays
    integer, intent(out) :: n_points
@@ -588,25 +593,25 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
    ! positions of the last saturation points before each critical point
    integer, dimension(4), intent(out) :: icri
    ! T, P and Density of critical points
-   double precision, dimension(4), intent(out) :: Tcri
-   double precision, dimension(4), intent(out) :: Pcri
-   double precision, dimension(4), intent(out) :: Dcri
+   real(pr), dimension(4), intent(out) :: Tcri
+   real(pr), dimension(4), intent(out) :: Pcri
+   real(pr), dimension(4), intent(out) :: Dcri
 
    ! number of valid elements in icri, Tcri, Pcri and Dcri arrays
    integer, intent(out) :: ncri
 
    ! Intermediate variables during calculation process
-   double precision, dimension(n) :: y, PHILOGy, PHILOGx
-   double precision, dimension(n) :: DLPHITx, DLPHIPx, DLPHITy, DLPHIPy
-   double precision, dimension(n, n) :: FUGNx, FUGNy
+   real(pr), dimension(n) :: y, PHILOGy, PHILOGx
+   real(pr), dimension(n) :: DLPHITx, DLPHIPx, DLPHITy, DLPHIPy
+   real(pr), dimension(n, n) :: FUGNx, FUGNy
    integer, dimension(n + 2) :: ipiv
-   double precision, dimension(n + 2) :: X, Xold, Xold2, delX, bd, F, dFdS, dXdS
-   double precision, dimension(n + 2, n + 2) :: JAC, AJ
-   double precision :: Vy, Vx
-   double precision, dimension(2) :: TpairA, PpairA, TpairB, PpairB
+   real(pr), dimension(n + 2) :: X, Xold, Xold2, delX, bd, F, dFdS, dXdS
+   real(pr), dimension(n + 2, n + 2) :: JAC, AJ
+   real(pr) :: Vy, Vx
+   real(pr), dimension(2) :: TpairA, PpairA, TpairB, PpairB
    logical :: run, passingcri, Cross, minT, minmaxT
 
-   double precision, dimension(nco, nco) :: Kij_or_K0, Tstar
+   real(pr), dimension(nco, nco) :: Kij_or_K0, Tstar
    common/CRIT/TC(nco), PC(nco), DCeos(nco), omg(nco)
    common/COMPONENTS/ac(nco), b(nco), delta1(nco), rk_or_m(nco), Kij_or_K0, NTDEP
    common/MODEL/NMODEL
@@ -891,8 +896,9 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
 
    !   ichoice=3 is used for cases where the initial saturated phase "xx" is the vapor (e.g. OilB with water from Lindeloff-Michelsen).
    !   y and w will correspond to the two liquid phases, with a beta fraction for w.
-
-   implicit double precision(A - H, O - Z)
+   use constants
+   use dtypes, only: env3
+   implicit real(pr)(A - H, O - Z)
    parameter(nco=64)
 
    ! M&M means the book by Michelsen and Mollerup, 2nd Edition (2007)
@@ -900,37 +906,37 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
    ! eos id, number of compounds in the system and starting point type
    integer, intent(in) :: model, n, ichoice
 
-   double precision Kinf
+   real(pr) Kinf
 
    ! estimated T, P and "w" phase fraction for first point (then used for every point)
-   double precision :: T, P, beta
+   real(pr) :: T, P, beta
 
    ! estimated K factors for first point (then used for every point)
-   double precision, dimension(n) :: KFACT, KFsep
+   real(pr), dimension(n) :: KFACT, KFsep
 
    ! composition of the system
-   double precision, dimension(n), intent(in) :: z
+   real(pr), dimension(n), intent(in) :: z
 
    ! pure compound physical constants
-   double precision, dimension(n), intent(in) :: tcn
-   double precision, dimension(n), intent(in) :: pcn
-   double precision, dimension(n), intent(in) :: omgn
+   real(pr), dimension(n), intent(in) :: tcn
+   real(pr), dimension(n), intent(in) :: pcn
+   real(pr), dimension(n), intent(in) :: omgn
 
    ! eos parameters
-   double precision, dimension(n), intent(in) :: acn  ! in bar*(L/mol)**2
-   double precision, dimension(n), intent(in) :: bn   ! in L/mol
-   double precision, dimension(n), intent(in) :: delta1n  !only required for RKPR
-   double precision, dimension(n), intent(in) :: k_or_mn  ! k for RKPR ; m for SRK/PR
+   real(pr), dimension(n), intent(in) :: acn  ! in bar*(L/mol)**2
+   real(pr), dimension(n), intent(in) :: bn   ! in L/mol
+   real(pr), dimension(n), intent(in) :: delta1n  !only required for RKPR
+   real(pr), dimension(n), intent(in) :: k_or_mn  ! k for RKPR ; m for SRK/PR
 
    ! interaction parameters matrices
-   double precision, dimension(n, n), intent(in) :: Kij_or_K0n
-   double precision, dimension(n, n), intent(in) :: Tstarn
-   double precision, dimension(n, n), intent(in) :: Lijn
+   real(pr), dimension(n, n), intent(in) :: Kij_or_K0n
+   real(pr), dimension(n, n), intent(in) :: Tstarn
+   real(pr), dimension(n, n), intent(in) :: Lijn
 
    ! T, P and Density of the calculated envelope
-   double precision, dimension(800), intent(out) :: Tv
-   double precision, dimension(800), intent(out) :: Pv
-   double precision, dimension(800), intent(out) :: Dv
+   real(pr), dimension(800), intent(out) :: Tv
+   real(pr), dimension(800), intent(out) :: Pv
+   real(pr), dimension(800), intent(out) :: Dv
 
    ! number of valid elements in Tv, Pv and Dv arrays
    integer, intent(out) :: n_points
@@ -938,28 +944,38 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
    ! positions of the last saturation points before each critical point
    integer, dimension(4), intent(out) :: icri
    ! T, P and Density of critical points
-   double precision, dimension(4), intent(out) :: Tcri
-   double precision, dimension(4), intent(out) :: Pcri
-   double precision, dimension(4), intent(out) :: Dcri
+   real(pr), dimension(4), intent(out) :: Tcri
+   real(pr), dimension(4), intent(out) :: Pcri
+   real(pr), dimension(4), intent(out) :: Dcri
 
    ! number of valid elements in icri, Tcri, Pcri and Dcri arrays
    integer, intent(out) :: ncri
 
    ! Intermediate variables during calculation process
-   double precision, dimension(n) :: y, xx, w, PHILOGy, PHILOGx, PHILOGw
-   double precision, dimension(n) :: dxdB, dydB, dwdB, dxdKs, dydKs, dwdKs, aux
-   double precision, dimension(n) :: DLPHITx, DLPHIPx, DLPHITy, DLPHIPy, DLPHITw, DLPHIPw
-   double precision, dimension(n, n) :: FUGNx, FUGNy, FUGNw
+   real(pr), dimension(n) :: y, xx, w, PHILOGy, PHILOGx, PHILOGw
+   real(pr), dimension(n) :: dxdB, dydB, dwdB, dxdKs, dydKs, dwdKs, aux
+   real(pr), dimension(n) :: DLPHITx, DLPHIPx, DLPHITy, DLPHIPy, DLPHITw, DLPHIPw
+   real(pr), dimension(n, n) :: FUGNx, FUGNy, FUGNw
    integer, dimension(2*n + 3) :: ipiv
-   double precision, dimension(2*n + 3) :: X, Xold, delX, bd, F, dFdS, dXdS
-   double precision, dimension(2*n + 3) :: Fp, JACnumK2, JACnumKn, JACnumKs2, JACnumKsn, JACnumlT, JACnumlP, JACnumB
-   double precision, dimension(2*n + 3, 2*n + 3) :: JAC, AJ
-   double precision :: Vy, Vx, Vw
-!        DOUBLE PRECISION, dimension(2) :: TpairA, PpairA, TpairB, PpairB    ! crossing vars
+   real(pr), dimension(2*n + 3) :: X, Xold, delX, bd, F, dFdS, dXdS
+   real(pr), dimension(2*n + 3) :: Fp, JACnumK2, JACnumKn, JACnumKs2, JACnumKsn, JACnumlT, JACnumlP, JACnumB
+   real(pr), dimension(2*n + 3, 2*n + 3) :: JAC, AJ
+   real(pr) :: Vy, Vx, Vw
+   ! real(pr), dimension(2) :: TpairA, PpairA, TpairB, PpairB    ! crossing vars
    logical :: run, passingcri, Comp3ph  !, Cross                       ! crossing var (Cross)
 
-   double precision, dimension(nco, nco) :: Kij_or_K0, Tstar
-   double precision, dimension(nco) :: KFsep1
+   real(pr), dimension(nco, nco) :: Kij_or_K0, Tstar
+   real(pr), dimension(nco) :: KFsep1
+
+   type(env3), intent(in out) :: this_envelope
+   real(pr) :: tmp_logk(800, n)
+   real(pr) :: tmp_logks(800, n)
+   real(pr) :: tmp_x(800, n)
+   real(pr) :: tmp_y(800, n)
+   real(pr) :: tmp_w(800, n)
+   real(pr) :: tmp_beta(800)
+   
+
    common/CRIT/TC(nco), PC(nco), DCeos(nco), omg(nco)
    common/COMPONENTS/ac(nco), b(nco), delta1(nco), rk_or_m(nco), Kij_or_K0, NTDEP
    common/MODEL/NMODEL
@@ -1300,13 +1316,14 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
 end subroutine envelope3
 
 subroutine EvalFEnvel3(n, z, X, F)
+   use constants
 
-   implicit double precision(A - H, O - Z)
-   double precision, dimension(n) :: KFACT, KFsep
-   double precision, dimension(n) :: z, y, xx, w, PHILOGy, PHILOGx, PHILOGw
-   double precision, dimension(n) :: DLPHITx, DLPHIPx, DLPHITy, DLPHIPy, DLPHITw, DLPHIPw
-   double precision, dimension(n, n) :: FUGNx, FUGNy, FUGNw
-   double precision, dimension(2*n + 3) :: X, F
+   implicit real(pr)(A - H, O - Z)
+   real(pr), dimension(n) :: KFACT, KFsep
+   real(pr), dimension(n) :: z, y, xx, w, PHILOGy, PHILOGx, PHILOGw
+   real(pr), dimension(n) :: DLPHITx, DLPHIPx, DLPHITy, DLPHIPy, DLPHITw, DLPHIPw
+   real(pr), dimension(n, n) :: FUGNx, FUGNy, FUGNw
+   real(pr), dimension(2*n + 3) :: X, F
 
    S = 0.001
    KFACT = exp(X(:n))
