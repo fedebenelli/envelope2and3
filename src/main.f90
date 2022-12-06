@@ -7,6 +7,77 @@
 !        common /bcross/bij(nco,nco)
 !        common /Tdep/ Kinf,Tstar
 
+module system
+   use constants, only: pr
+   implicit none
+
+   ! Model settings
+   integer :: thermo_model
+   integer :: tdep
+   integer :: mixing_rule
+   integer :: n_components
+
+   ! Critical constants
+   real(pr), allocatable :: tc(:)
+   real(pr), allocatable :: pc(:)
+   real(pr), allocatable :: dc(:)
+   real(pr), allocatable :: w(:)
+
+   ! Model parameters
+   real(pr), allocatable :: ac(:)
+   real(pr), allocatable :: b(:)
+   real(pr), allocatable :: delta1(:)
+   real(pr), allocatable :: k(:)
+   real(pr), allocatable :: kij(:, :)
+   real(pr), allocatable :: lij(:, :)
+
+   real(pr), allocatable :: kinf(:, :), tstar(:, :)
+
+   ! Mixture parameters
+   real(pr), allocatable :: aij(:, :)
+   real(pr), allocatable :: bij(:, :)
+
+contains
+   subroutine setup(n, nmodel, ntdep, ncomb)
+      integer, intent(in) :: n
+      integer, intent(in) :: nmodel
+      integer, intent(in) :: ntdep
+      integer, intent(in) :: ncomb
+   
+      thermo_model = nmodel
+      tdep = ntdep
+      mixing_rule = ncomb
+      n_components = n
+
+      allocate(tc(n))
+      allocate(pc(n))
+      allocate(dc(n))
+      allocate(w(n))
+      allocate(ac(n))
+      allocate(b(n))
+      allocate(delta1(n))
+      allocate(k(n))
+      allocate(kij(n, n))
+      allocate(lij(n, n))
+      allocate(kinf(n, n))
+      allocate(tstar(n, n))
+      allocate(aij(n, n))
+      allocate(bij(n, n))
+   end subroutine setup
+end module system
+
+module envelopes
+   use constants
+   use dtypes
+
+   implicit none
+   private
+
+   interface skip_critical
+   end interface
+contains
+end module envelopes
+
 
 program calc_envelope2and3
    implicit double precision(A - H, O - Z)
