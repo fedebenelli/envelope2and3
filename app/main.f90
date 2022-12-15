@@ -1,91 +1,17 @@
 
-! Listado de commons utilizados, que podrían pasar a un módulo:
-!   common /CRIT/TC(nco),PC(nco),DCeos(nco),omg(nco)
-!        common /COMPONENTS/ ac(nco),b(nco),delta1(nco),rk(nco),Kij_or_K0,NTDEP
-!        common /MODEL/ NMODEL
-!        common /rule/ncomb
-!        common /bcross/bij(nco,nco)
-!        common /Tdep/ Kinf,Tstar
-
-module system
-   use constants, only: pr
-   implicit none
-
-   ! Model settings
-   integer :: thermo_model
-   integer :: tdep
-   integer :: mixing_rule
-   integer :: n_components
-
-   ! Critical constants
-   real(pr), allocatable :: tc(:)
-   real(pr), allocatable :: pc(:)
-   real(pr), allocatable :: dc(:)
-   real(pr), allocatable :: w(:)
-
-   ! Model parameters
-   real(pr), allocatable :: ac(:)
-   real(pr), allocatable :: b(:)
-   real(pr), allocatable :: delta1(:)
-   real(pr), allocatable :: k(:)
-   real(pr), allocatable :: kij(:, :)
-   real(pr), allocatable :: lij(:, :)
-
-   real(pr), allocatable :: kinf(:, :), tstar(:, :)
-
-   ! Mixture parameters
-   real(pr), allocatable :: aij(:, :)
-   real(pr), allocatable :: bij(:, :)
-
-contains
-   subroutine setup(n, nmodel, ntdep, ncomb)
-      integer, intent(in) :: n
-      integer, intent(in) :: nmodel
-      integer, intent(in) :: ntdep
-      integer, intent(in) :: ncomb
-   
-      thermo_model = nmodel
-      tdep = ntdep
-      mixing_rule = ncomb
-      n_components = n
-
-      allocate(tc(n))
-      allocate(pc(n))
-      allocate(dc(n))
-      allocate(w(n))
-      allocate(ac(n))
-      allocate(b(n))
-      allocate(delta1(n))
-      allocate(k(n))
-      allocate(kij(n, n))
-      allocate(lij(n, n))
-      allocate(kinf(n, n))
-      allocate(tstar(n, n))
-      allocate(aij(n, n))
-      allocate(bij(n, n))
-   end subroutine setup
-end module system
-
-module envelopes
-   use constants
-   use dtypes
-
-   implicit none
-   private
-
-   interface skip_critical
-   end interface
-contains
-end module envelopes
-
-
 program calc_envelope2and3
    use constants
+   use io, only: str
    implicit real(pr)(A - H, O - Z)
    logical Comp3ph
+   character(len=200) :: infile
    common/writeComp/Comp3ph, i1, i2
+   real :: start_time, end_time
 
-   open (1, FILE='envelIN.txt')
+   call system("rm env23out/envelout*")
+   call get_command_argument(1, infile)
+
+   open (1, FILE=infile)! 'envelIN.txt')
    open (2, FILE='envelOUT.txt')
    read (1, *) N
 
@@ -103,28 +29,31 @@ program calc_envelope2and3
       write (3, *) 'Molar fractions along three-phase boundaries are printed below for compounds with order:', i1, i2
    end if
 
+   call cpu_time(start_time)
    call readcase(n)
+   call cpu_time(end_time)
+   print *, "Finished in " // str(end_time - start_time) // "seconds"
 
 end program
 
 subroutine readcase(n)
    use constants
-   use dtypes, only: envelope, kfcross, cross
-   use array_operations, only: find_cross
+   use system, only: z
+   use dtypes, only: envelope, kfcross, cross, print_header, env3, find_cross
 
    implicit real(pr)(A - H, O - Z)
-   ! implicit none
+
 
    integer, parameter :: nco=64
    real(pr), parameter :: Pmax=700
    integer, intent(in) :: n
 
-   real(pr) :: z(n), xx(n), w(n)
+   real(pr) :: xx(n), w(n)
 
    real(pr) :: Kinf
    real(pr), dimension(n) :: Kfact, KFsep
    real(pr), dimension(nco) :: KFcr1, Kscr1, KFcr2, Kscr2, & 
-                               KlowT, PHILOGxlowT, KFsep1 ! go in commons (cannot have n dimension)
+                               KlowT, PHILOGxlowT ! go in commons (cannot have n dimension)
    
    ! pure compound physical constants
    real(pr), dimension(n) :: tcn, pcn, omgn
@@ -140,12 +69,12 @@ subroutine readcase(n)
    real(pr), dimension(n, n) :: Tstarn
 
    ! interaction parameters matrices in common
-   real(pr), dimension(nco, nco) :: Kij_or_K0, Lij, Tstar
+   real(pr) :: Kij_or_K0(nco, nco), Lij(nco, nco), Tstar(nco, nco)
 
    ! T, P and Density of the calculated envelope
-   real(pr), dimension(800) :: Tv
-   real(pr), dimension(800) :: Pv
-   real(pr), dimension(800) :: Dv
+   real(pr) :: Tv(800)
+   real(pr) :: Pv(800)
+   real(pr) :: Dv(800)
 
    ! number of valid elements in To, Po and Do arrays
    integer :: n_points
@@ -163,6 +92,7 @@ subroutine readcase(n)
    real(pr), dimension(n) :: y, PHILOGy, PHILOGx
    real(pr), dimension(n) :: DLPHITx, DLPHIPx, DLPHITy, DLPHIPy
    real(pr), dimension(n, n) :: FUGNx, FUGNy
+   real(pr) :: start_time, end_time
 
    type(cross), allocatable :: crossings(:)
 
@@ -179,12 +109,16 @@ subroutine readcase(n)
    common /DewCurve/ ilastDewC, TdewC(800), PdewC(800), dewK(800, nco)
    common /lowTbub/ TlowT, PlowT, KlowT, PHILOGxlowT !shared with envelope2
 
+   ! common/CrossingPoints/Tcr1, Pcr1, Tcr2, Pcr2, KFcr1, Kscr1, KFcr2, Kscr2
+   ! common/lowTKsep/KFsep1     !shared with envelope3
 
    type(envelope) :: dew_envelope, low_t_envelope, high_p_envelope
+   type(env3) :: triphasic
 
    Tcr1 = 0.d0 ! T of 1st crossing point detected between different envelope segments
    Tcr2 = 0.d0
 
+   allocate(z(n))
    read (1, *) (z(j), j=1, N)
    read (1, *) nmodel
    if (nmodel < 3) then
@@ -212,19 +146,27 @@ subroutine readcase(n)
    ! Although the algorithm is written to start from a bubble point, here we invert the Wilson K factors
    ! and y will actually mean x (ichoice = 2)
 
+   print *, "Running Dew Line"
+   call cpu_time(start_time)
    ichoice = 2
    P = 1.0
    T = 315.0
+
    do while (P > 0.1)
       T = T - 5.D0
       P = 1.d0/sum(z/(PCn*exp(5.373*(1 + omgn)*(1 - TCn/T))))
    end do
+
    KFACT = PCn*exp(5.373*(1 + omgn)*(1 - TCn/T))/P  ! standard Wilson K factors
    KFACT = 1.d0/KFACT  ! inversion
 
    call envelope2(ichoice, nmodel, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn, k_or_mn, delta1n, &
                   Kij_or_K0n, Tstarn, Lijn, n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri, dew_envelope)
+   call cpu_time(end_time)
    call WriteEnvel(n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
+   call dew_envelope%write("env23out/envelout-DEW")
+   print *, "Done in: ", end_time-start_time
+
    TdewC = Tv
    PdewC = Pv
    ilastDewC = n_points
@@ -232,17 +174,27 @@ subroutine readcase(n)
    if (Tcr1 > 0.d0) then  ! self crossing detected (usual in some asymmetric hc mixtures)
 
    else if (P > Pmax) then  ! now run from Low T Bubble point
+      print *, "Running LowTBub Line"
+      call cpu_time(start_time)
       ichoice = 1
       P = 11.0   ! 11.0
       T = 205.0
+
       do while (P > 10) ! > 10
          T = T - 5.D0
          P = sum(z*PCn*exp(5.373*(1 + omgn)*(1 - TCn/T)))
       end do
+
       KFACT = PCn*exp(5.373*(1 + omgn)*(1 - TCn/T))/P
-      call envelope2(ichoice, nmodel, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn, k_or_mn, delta1n, &
-                     Kij_or_K0n, Tstarn, Lijn, n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri, low_t_envelope)
+
+      call envelope2(&
+         ichoice, nmodel, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn, k_or_mn, delta1n, &
+         Kij_or_K0n, Tstarn, Lijn, n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri, low_t_envelope &
+      )
+      call cpu_time(end_time)
+      print *, "Done in: ", end_time-start_time
       call WriteEnvel(n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
+      call low_t_envelope%write("env23out/envelout-LTBUB")
 
       ! ========================================================================
       !  Crossings finding
@@ -287,7 +239,11 @@ subroutine readcase(n)
       end if
       ! ========================================================================
 
-   else  ! now run from High P L-L saturation (incipient phase rich in last comp.)
+   else
+      ! In the case the low pressure dew line went near negative pressure
+      ! run from High P L-L saturation (incipient phase rich in last comp.)
+      print *, "Running HighPLL Line"
+      call cpu_time(start_time)
       ichoice = 3
       P = Pmax
       T = 710.0
@@ -296,22 +252,25 @@ subroutine readcase(n)
       y = 0.d0
       y(n) = 1.d0
       difw = -1.d0
-      ! WRITE (2,*) '  P = ', P
-      ! WRITE (2,*) '     T    dif LogFug'
+
       do while (difW < 0.d0)
          T = T - 10.D0
          call TERMO(n, ix, 1, T, P, z, Vx, PHILOGx, DLPHIPx, DLPHITx, FUGNx) ! for fluid
          call TERMO(n, iy, 1, T, P, y, Vy, PHILOGy, DLPHIPy, DLPHITy, FUGNy) ! for pure Water/Asphaltene
          difW = log(z(n)) + PHILOGx(n) - log(y(n)) - PHILOGy(n)
-         !            WRITE (2,*) T, difW
       end do
+
       KFACT = 1.D-3
       KFACT(n) = 1/z(n)
       call envelope2(ichoice, nmodel, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn, k_or_mn, delta1n, &
                      Kij_or_K0n, Tstarn, Lijn, n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri, high_p_envelope)
+      call cpu_time(end_time)
+      print *, "Done in: ", end_time - start_time
+
+      call high_p_envelope%write("env23out/envelout-HPLL")
       call WriteEnvel(n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
 
-      if (P < 1.0) then ! 5/6/22
+      if (P < 15.0) then ! 5/6/22
          ichoice = 1   ! now run from Low T Bubble point, after isolated LL saturation curve
          P = 11.0
          T = 205.0
@@ -322,6 +281,8 @@ subroutine readcase(n)
          KFACT = PCn*exp(5.373*(1 + omgn)*(1 - TCn/T))/P
          call envelope2(ichoice, nmodel, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn, k_or_mn, delta1n, &
                         Kij_or_K0n, Tstarn, Lijn, n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri, low_t_envelope)
+         call low_t_envelope%write("env23out/envelout-LTBUB")
+         
          call WriteEnvel(n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
 
          ! Find cross between high P LL and bubble
@@ -355,52 +316,71 @@ subroutine readcase(n)
 
    if (abs(Tcr1) < 1d-5) then ! no crossings
       print *, "no cross found"
+
+      ! ========================================================================
+      !  Inner envelopes calculation
+      ! ------------------------------------------------------------------------
+      print *, "Running 3phase with incipient vapor"
       ichoice = 1   ! first inner curve: 3-phase bubble curve (incipient: V)
-      T = TlowT
-      P = PlowT
-      beta = z(n) ! asphaltenes (or last, separating compound) molar fraction
-      KFACT = KlowT(1:n)
-      y = 0.d0
-      y(n) = 1.d0
+
+      ! Start from the low T bubble envelope first point
+      if (allocated(low_t_envelope%t)) then
+         T = low_t_envelope%t(1)
+         P = low_t_envelope%p(1)
+      else
+         T = 150.d0
+         P = 10.d0
+      end if
+
+      beta = z(n) ! asphaltenes (or last, separating compound) molar fraction WHY
+      KFACT = exp(low_t_envelope%logk(1, :))
+      
+      ! Second liquid fugacity
+      y = 0
+      y(n) = 1
       call TERMO(n, 1, 1, T, P, y, Vy, PHILOGy, DLPHIPy, DLPHITy, FUGNy)
+
+      ! K = bubble_fug/pure_heavy_fug, for two liquid phases 
       KFsep = exp(PHILOGxlowT(1:n) - PHILOGy)
       call envelope3(ichoice, nmodel, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, omgn, acn, bn, k_or_mn, delta1n, &
-                     Kij_or_K0n, Tstarn, Lijn, n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
+                     Kij_or_K0n, Tstarn, Lijn, n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri, triphasic)
       call WriteEnvel(n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
+      call triphasic%write("env23out/envelout-NOCROSS1")
 
-      ichoice = 2   ! second inner curve: Lower AOP curve (incipient: Asph. or 2nd L)
-      T = TlowT
-!          beta = sum(z(1:9)) ! volatile compounds until C5  (GENERALIZE LATER as sum of all compounds with Tc<470)
-!          s = 2
-!          do while (s>1.2)
-!              P = P/2
-!              beta = 0.8 * beta
-!              KFsep = PCn * EXP(5.373*(1+omgn)*(1-TCn/T)) / P  ! standard Wilson K factors
-!              xx = z/(1-beta+beta*KFsep)
-!              s = sum(xx)
-!          end do
-!          KFACT(n) = 1/xx(n)
-!          P = P1 + (P2-P1) * (1-S1) / (S2-S1)
-!          KFACT = KFsep1(1:n) ! from converged first point for 3-phase bubble curve
-      P = PlowT/2
+      ! ------------------------------------------------------------------------
+
+      ichoice = 2 ! second inner curve: Lower AOP curve (incipient: Asph. or 2nd L)
+      T = low_t_envelope% t(1)
+      P = low_t_envelope% p(1)/2
+      
       FIRST = .true.
       spec = 'TP'
+
       call flash(spec, FIRST, nmodel, n, z, tcn, pcn, omgn, acn, bn, k_or_mn, delta1n, &
                  Kij_or_K0n, Tstarn, Lijn, t, p, v, xx, w, rho_x, rho_y, beta, iter)
       call TERMO(n, 1, 1, T, P, xx, Vx, PHILOGx, DLPHIPy, DLPHITy, FUGNy)
-      y = 0.d0
-      y(n) = 1.d0
+
+      !y = z/(z(n) + z(n-1))
+      !y(:n-2) = 0.d0
+      y = 0
+      open(69, file="asph_init")
+      read(69, *) y(n), y(n-1)
+      close(69)
+      ! y(n) = 0.9
+      ! y(n-1) = 0.1
+      y = 0 
+      y(n) = 1
+
       call TERMO(n, 1, 1, T, P, y, Vy, PHILOGy, DLPHIPy, DLPHITy, FUGNy)
       dif = PHILOGy(n) - (PHILOGx(n) + log(xx(n)))
       Pold = P
+
       if (dif < 0) then
          P = 0.9*P
       else
          P = 1.1*P
       end if
-      
-!          yn = xx(n)*KFACT(n)
-!          do while (yn>2.0)
+
       do while (abs(dif) > 0.1 .and. P > 0.9)
          call flash(spec, FIRST, nmodel, n, z, tcn, pcn, omgn, acn, bn, k_or_mn, delta1n, &
                     Kij_or_K0n, Tstarn, Lijn, t, p, v, xx, w, rho_x, rho_y, beta, iter)
@@ -412,6 +392,9 @@ subroutine readcase(n)
 
          aux = P
 
+         extrapolation = (dold*(P - Pold)/(dif - dold))
+
+         P = max(P/10, Pold - extrapolation)
          Pold = aux
       end do
 
@@ -439,8 +422,9 @@ subroutine readcase(n)
       KFsep = w/xx
 
       call envelope3(ichoice, nmodel, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, omgn, acn, bn, k_or_mn, delta1n, &
-                     Kij_or_K0n, Tstarn, Lijn, n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
+                     Kij_or_K0n, Tstarn, Lijn, n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri, triphasic)
       call WriteEnvel(n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
+      call triphasic%write("env23out/envelout-NOCROSS2")
 
    else  ! at least one crossing
       if (ichoice /= 3) ichoice = 1
@@ -451,8 +435,9 @@ subroutine readcase(n)
       KFACT = exp(KFcr1(:n))
       KFsep = exp(Kscr1(:n))
       call envelope3(ichoice, nmodel, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, omgn, acn, bn, k_or_mn, delta1n, &
-                     Kij_or_K0n, Tstarn, Lijn, n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
+                     Kij_or_K0n, Tstarn, Lijn, n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri, triphasic)
       call WriteEnvel(n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
+      call triphasic%write("env23out/envelout-CROSS11")
 
       if (ichoice /= 3) ichoice = 2
       T = Tcr1
@@ -462,11 +447,12 @@ subroutine readcase(n)
       KFsep = exp(KFcr1(:n)) ! w will be vapor, with phase fraction beta
       
       call envelope3(ichoice, nmodel, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, omgn, acn, bn, k_or_mn, delta1n, &
-                     Kij_or_K0n, Tstarn, Lijn, n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
+                     Kij_or_K0n, Tstarn, Lijn, n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri, triphasic)
       call WriteEnvel(n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
+      call triphasic%write("env23out/envelout-CROSS12")
    end if
 
-   ! THIS IF SHOULD BE INSIDE THE ELSE ABOVE!!
+   ! Maybe this should be inside the else above?
    if (abs(Tcr2) > 1d-5) then
       print *, "second cross", Tcr2, Pcr2
       ichoice = 1
@@ -476,8 +462,9 @@ subroutine readcase(n)
       KFACT = exp(KFcr2(:n))
       KFsep = exp(Kscr2(:n))
       call envelope3(ichoice, nmodel, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, omgn, acn, bn, k_or_mn, delta1n, &
-                     Kij_or_K0n, Tstarn, Lijn, n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
+                     Kij_or_K0n, Tstarn, Lijn, n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri, triphasic)
       call WriteEnvel(n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
+      call triphasic%write("env23out/envelout-CROSS21")
 
       ichoice = 2
       T = Tcr2
@@ -486,9 +473,9 @@ subroutine readcase(n)
       KFACT = exp(Kscr2(:n)) ! now y (incipient phase in envelope3) will be the second liquid
       KFsep = exp(KFcr2(:n)) ! w will be vapor, with phase fraction beta
       call envelope3(ichoice, nmodel, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, omgn, acn, bn, k_or_mn, delta1n, &
-                     Kij_or_K0n, Tstarn, Lijn, n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
+                     Kij_or_K0n, Tstarn, Lijn, n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri, triphasic)
       call WriteEnvel(n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
-      
+      call triphasic%write("env23out/envelout-CROSS22")
    end if
 
 end subroutine readcase
@@ -559,6 +546,8 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
    ! estimated T and P for first point (then used for every point)
    real(pr) :: T, P
 
+   real(pr) :: maxP
+
    ! estimated K factors for first point (then used for every point)
    real(pr), dimension(n) :: KFACT
    real(pr), dimension(nco) :: KFcr1, Kscr1, KFcr2, Kscr2, KlowT, PHILOGxlowT ! go in commonS (cannot have n dimension)
@@ -608,22 +597,27 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
    real(pr), dimension(n + 2) :: X, Xold, Xold2, delX, bd, F, dFdS, dXdS
    real(pr), dimension(n + 2, n + 2) :: JAC, AJ
    real(pr) :: Vy, Vx
-   real(pr), dimension(2) :: TpairA, PpairA, TpairB, PpairB
-   logical :: run, passingcri, Cross, minT, minmaxT
+   logical :: run, passingcri, minT, minmaxT
 
    real(pr), dimension(nco, nco) :: Kij_or_K0, Tstar
-   common/CRIT/TC(nco), PC(nco), DCeos(nco), omg(nco)
-   common/COMPONENTS/ac(nco), b(nco), delta1(nco), rk_or_m(nco), Kij_or_K0, NTDEP
-   common/MODEL/NMODEL
-   common/rule/ncomb
-   common/bcross/bij(nco, nco)
-   common/Tdep/Kinf, Tstar
-   common/DewCurve/ilastDewC, TdewC(800), PdewC(800), dewK(800, nco)
-   common/CrossingPoints/Tcr1, Pcr1, Tcr2, Pcr2, KFcr1, Kscr1, KFcr2, Kscr2
-   common/lowTbub/TlowT, PlowT, KlowT, PHILOGxlowT
 
-   real(8) :: tmp_logk(800, n)
+   common /CRIT/ TC(nco), PC(nco), DCeos(nco), omg(nco)
+   common /COMPONENTS/ ac(nco), b(nco), delta1(nco), rk_or_m(nco), Kij_or_K0, NTDEP
+   common /MODEL/ NMODEL
+   common /rule/ ncomb
+   common /bcross/ bij(nco, nco)
+   common /Tdep/ Kinf, Tstar
+   common /DewCurve/ ilastDewC, TdewC(800), PdewC(800), dewK(800, nco)
+   common /CrossingPoints/ Tcr1, Pcr1, Tcr2, Pcr2, KFcr1, Kscr1, KFcr2, Kscr2
+   common /lowTbub/ TlowT, PlowT, KlowT, PHILOGxlowT
+
+   real(pr) :: tmp_logk(800, n)
+   real(pr) :: tmp_logphi(800, n)
    type(envelope) :: this_envelope
+
+   ! Initialize with zero Tv and Pv
+   Tv = 0
+   Pv = 0
 
    minT = .false.
    minmaxT = .false.
@@ -692,7 +686,7 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
       delX = 1.0
       iter = 0
       max_iter = 100
-      do while (maxval(abs(delX)) > 1.d-5 .and. iter <= max_iter)
+      do while (maxval(abs(delX)) > 1.d-7 .and. iter <= max_iter)
          iter = iter + 1
          !      nc,MTYP,INDIC,T,P,rn,V,PHILOG,DLPHI,DLPHIP,DLPHIT,FUGN
          call TERMO(n, iy, 4, T, P, y, Vy, PHILOGy, DLPHIPy, DLPHITy, FUGNy)
@@ -700,22 +694,25 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
          F(:n) = X(:n) + PHILOGy - PHILOGx  ! X(:n) are LOG_K
          F(n + 1) = sum(y - z)
          F(n + 2) = X(ns) - S
+
          do j = 1, n
             JAC(1:n, j) = FUGNy(:, j)*y(j)  ! z*K=y
             JAC(j, j) = JAC(j, j) + 1.d0
          end do
+
          JAC(1:n, n + 1) = T*(DLPHITy - DLPHITx)
          JAC(1:n, n + 2) = P*(DLPHIPy - DLPHIPx)
          JAC(n + 1, 1:n) = y
          JAC(n + 2, :) = 0.d0
          JAC(n + 2, ns) = 1.d0
+
          ! call dgesv( n, nrhs, a, lda, ipiv, b, ldb, info )
          bd = -F
          AJ = JAC
          call dgesv(n + 2, 1, AJ, lda, ipiv, bd, ldb, info)
-         if (info .ne. 0) then
-            print *, "error with dgesv in parameter ", info, "540"
-         end if
+         ! if (info .ne. 0) then
+         !    print *, "error with dgesv in parameter ", info, "540"
+         ! end if
          delX = bd
 
          if (i == 1) then
@@ -731,11 +728,14 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
 
          X = X + delX
 
-         if (.not. passingcri .and. i /= 1 .and. iter > 20 .and. maxval(abs(delX)) > 0.001) then ! Too many iterations-->Reduce step to new point
-            delS = delS*3.0/4.0
-            S = S - delS
-            X = Xold + dXdS*delS
-            !iter = 0
+         if (.not. passingcri .and. i /= 1 &
+             .and. iter > 20 &
+             .and. maxval(abs(delX)) > 0.001) then 
+            ! Too many iterations-->Reduce step to new point
+
+            !delS = delS*3.0/4.0
+            !S = S - delS
+            !X = Xold + dXdS*delS
          end if
 
          KFACT = exp(X(:n))
@@ -758,16 +758,18 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
       if (ichoice == 2 .and. i > 1) then
          ! TODO: If this is the way the low p dew line finishes, I think this should be more strict
          if (P < Pv(i - 1) .and. P < maxP/5 .and. T > 300) then
-            run = .false.  ! to finish envelope going to low T bubble
+            run = .true.  ! to finish envelope going to low T bubble
          end if
       end if
 
-      print *, T, P, ns, iter
+      ! print *, T, P, ns, iter
       Tv(i) = T
       Pv(i) = P
       Dv(i) = 1/Vx    ! saturated phase density
 
       tmp_logk(i, :n) = X(:n)
+      tmp_logphi(i, :n) = philogx(:n)
+
       ! rho_y = 1/Vy     incipient phase density
 
       if (ichoice == 3 .and. P < 1.0) then
@@ -782,7 +784,7 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
          Pcri(ncri) = Pv(i - 1) + frac*(P - Pv(i - 1))
          Dcri(ncri) = Dv(i - 1) + frac*(Dv(i) - Dv(i - 1))
          iy = -iy
-         ix = -yx
+         ix = -ix !! -yx WHY
       end if
 
       if (run) then
@@ -791,9 +793,9 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
          bd = -dFdS
          AJ = JAC
          call dgesv(n + 2, 1, AJ, lda, ipiv, bd, ldb, info)
-         if (info .ne. 0) then
-            print *, "error with dgesv in parameter ", info, "760"
-         end if
+         ! if (info .ne. 0) then
+         !    print *, "error with dgesv in parameter ", info, "760"
+         ! end if
          dXdS = bd
          ! Selection of (the most changing) variable to be specified for the next point
          nsold = ns
@@ -829,10 +831,10 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
 
          do while (maxval(abs(X(:n))) < 0.03)  ! approaching the black hole... get out of there! (0.03)
             black_i = black_i + 1
-            if (black_i > 50) then
-               print *, "Stuck on the black hole 1"
-               step_fixer = 3.d0
-            end if
+            ! if (black_i > 50) then
+            !    print *, "Stuck on the black hole 1"
+            !    step_fixer = 3.d0
+            ! end if
             stepX = maxval(abs(X(:n) - Xold(:n))) ! the step given by the most changing logK to fall into the black hole
             passingcri = .true.
             if (stepX > 0.07) then
@@ -870,16 +872,19 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
    ! Define envelope values, omit the last point to avoid not really
    ! converged cases
    this_envelope%logk = tmp_logk(:n_points - 1, :)
+   this_envelope%logphi = tmp_logphi(:n_points - 1, :)
    this_envelope%t = Tv(:n_points - 1)
    this_envelope%p = Pv(:n_points - 1)
+   this_envelope%z = z
 
-   print *, y
-   print *, rho_x
-   print *, rho_y
-   print *, beta
+   ! print *, y
+   ! print *, rho_x
+   ! print *, rho_y
+   ! print *, beta
 end subroutine envelope2
 
 subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, omgn, acn, bn, k_or_mn, delta1n, &
+                     Kij_or_K0n, Tstarn, Lijn, n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri, this_envelope)
    ! Routine for tracing the boundaries of a three-phase region, starting from a known previously detected point.
    ! Developed as an extension and modification of "envelope2". March 2017.
 
@@ -900,6 +905,8 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
    use dtypes, only: env3
    implicit real(pr)(A - H, O - Z)
    parameter(nco=64)
+   integer, parameter :: max_points=800
+   integer :: n_phases = 3 !! Number of phases
 
    ! M&M means the book by Michelsen and Mollerup, 2nd Edition (2007)
 
@@ -934,9 +941,9 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
    real(pr), dimension(n, n), intent(in) :: Lijn
 
    ! T, P and Density of the calculated envelope
-   real(pr), dimension(800), intent(out) :: Tv
-   real(pr), dimension(800), intent(out) :: Pv
-   real(pr), dimension(800), intent(out) :: Dv
+   real(pr), intent(out) :: Tv(max_points)
+   real(pr), intent(out) :: Pv(max_points)
+   real(pr), intent(out) :: Dv(max_points)
 
    ! number of valid elements in Tv, Pv and Dv arrays
    integer, intent(out) :: n_points
@@ -958,7 +965,6 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
    real(pr), dimension(n, n) :: FUGNx, FUGNy, FUGNw
    integer, dimension(2*n + 3) :: ipiv
    real(pr), dimension(2*n + 3) :: X, Xold, delX, bd, F, dFdS, dXdS
-   real(pr), dimension(2*n + 3) :: Fp, JACnumK2, JACnumKn, JACnumKs2, JACnumKsn, JACnumlT, JACnumlP, JACnumB
    real(pr), dimension(2*n + 3, 2*n + 3) :: JAC, AJ
    real(pr) :: Vy, Vx, Vw
    ! real(pr), dimension(2) :: TpairA, PpairA, TpairB, PpairB    ! crossing vars
@@ -968,13 +974,14 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
    real(pr), dimension(nco) :: KFsep1
 
    type(env3), intent(in out) :: this_envelope
-   real(pr) :: tmp_logk(800, n)
-   real(pr) :: tmp_logks(800, n)
-   real(pr) :: tmp_x(800, n)
-   real(pr) :: tmp_y(800, n)
-   real(pr) :: tmp_w(800, n)
-   real(pr) :: tmp_beta(800)
-   
+   real(pr) :: tmp_logk(max_points, n)
+   real(pr) :: tmp_logks(max_points, n)
+   real(pr) :: tmp_x(max_points, n)
+   real(pr) :: tmp_y(max_points, n)
+   real(pr) :: tmp_w(max_points, n)
+   real(pr) :: tmp_beta(max_points)
+
+   character(len=:), allocatable :: incipient_phase
 
    common/CRIT/TC(nco), PC(nco), DCeos(nco), omg(nco)
    common/COMPONENTS/ac(nco), b(nco), delta1(nco), rk_or_m(nco), Kij_or_K0, NTDEP
@@ -984,8 +991,20 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
    common/Tdep/Kinf, Tstar
    common/lowTKsep/KFsep1
    common/writeComp/Comp3ph, i1, i2
+
    ! common /DewCurve/ ilastDewC, TdewC(500), PdewC(500)     ! crossing vars
    ! common /CrossingPoints/ Tcr1,Pcr1,Tcr2,Pcr2,KFcr1,Kscr1,KFcr2,Kscr2
+
+
+   select case(ichoice)
+      case (1)
+         incipient_phase = "Vapor"
+      case (2)
+         incipient_phase = "2nd Liquid"
+      case (3)
+         incipient_phase = "Saturated vapor"
+   end select
+   print *, "Running: ", incipient_phase
 
    ! Charging the commons(nco) from input arguments (n)
    NMODEL = model
@@ -1012,6 +1031,7 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
    !-----------------------------------------------------------
 
    ! Continuation method for tracing the envelope starts here
+   passingcri = .false.
    run = .true.
    i = 0
    ncri = 0
@@ -1024,10 +1044,6 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
    X(2*n + 2) = log(P)
    X(2*n + 3) = beta
 
-   !
-   ! To test Jacobian insert here block for numerical derivatives at the end of this code
-   !
-
    iy = 1
    ix = 1
    iw = 1
@@ -1036,7 +1052,7 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
    if (ichoice == 2) iw = -1  ! w will be vapor phase during the first part
    if (ichoice == 3) ix = -1  ! x will be vapor phase, saturated in the first point
 
-   if (beta == 0.0d0) then
+   if (beta .le. 1.0e-12) then
       ns = 2*n + 3
       S = 0.00   ! for beta
       delS = 0.001
@@ -1053,15 +1069,15 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
    Xold = 0.d0
    dFdS = 0.d0
    dFdS(2*n + 3) = -1.d0
-   write (2, *) '     T       P      beta     X(1)     X(n)     X(n+1)     X(2*n)    ns  iter'
-   if (Comp3ph) write (3, *) '     T       P      beta     xa     xb     ya     yb    wa     wb'
+   ! write (2, *) '     T       P      beta     X(1)     X(n)     X(n+1)     X(2*n)    ns  iter'
+   ! if (Comp3ph) write (3, *) '     T       P      beta     xa     xb     ya     yb    wa     wb'
 
    do while (run)
       i = i + 1  ! number of point to be calculated along the line
       ! Newton starts here
       delX = 1.0
       iter = 0
-      max_iter = 100
+      max_iter = 50
       reps = 0
 
       do while (maxval(abs(delX)) > 1.d-5 .and. iter <= max_iter)
@@ -1075,6 +1091,7 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
          F(2*n + 1) = sum(y - xx)
          F(2*n + 2) = sum(w - xx)
          F(2*n + 3) = X(ns) - S
+
          dxdB = -(KFsep - 1.d0)*xx*xx/z
          dydB = KFACT*dxdB
          dwdB = KFsep*dxdB
@@ -1129,15 +1146,15 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
 
          call dgesv(2*n + 3, 1, AJ, lda, ipiv, bd, ldb, info)
 
-         if (info .ne. 0) then
-            print *, "error with dgesv in parameter ", info
-            print *, "error at", T, P
-         end if
+         ! if (info .ne. 0) then
+         !    print *, "error with dgesv in parameter ", info
+         !    print *, "error at", T, P
+         ! end if
 
          delX = bd
 
          if (i == 1) then
-            do while (maxval(abs(delX)) > 1.0)   ! Too large Newton step --> Reduce it
+            do while (maxval(abs(delX)) > 0.1)   ! Too large Newton step --> Reduce it
                delX = delX/2
             end do
          else
@@ -1149,8 +1166,8 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
 
          X = X + delX
 
-         if (.not. passingcri .and. i /= 1 .and. iter > 20 .and. maxval(abs(delX)) > 0.001) then ! Too many iterations--> Reduce step to new point
-            delS = delS*3.d0/4.d0
+         if (.not. passingcri .and. i/= 1 .and. iter > 20 .and. maxval(abs(delX)) > 0.001) then ! Too many iterations--> Reduce step to new point
+            delS = delS * 3.d0/4.d0
             S = S - delS
             X = Xold + dXdS*delS
          end if
@@ -1171,9 +1188,11 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
 
       if (ichoice == 1 .and. i == 1) KFsep1(1:n) = KFsep
 
-      print *, T, P, ns, iter
-      write (2, 1) T, P, beta, X(1), X(n), X(n + 1), X(2*n), ns, iter
+
+      ! write (2, 1) T, P, beta, X(1), X(n), X(n + 1), X(2*n), ns, iter
+
       if (Comp3ph) write (3, 3) T, P, beta, xx(i1), xx(i2), y(i1), y(i2), w(i1), w(i2)
+
       Tv(i) = T
       Pv(i) = P
       Dv(i) = 1/Vx    ! saturated phase density
@@ -1188,7 +1207,7 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
          Pcri(ncri) = Pv(i - 1) + frac*(P - Pv(i - 1))
          Dcri(ncri) = Dv(i - 1) + frac*(Dv(i) - Dv(i - 1))
          iy = -iy
-         ix = -yx
+         ix = -ix
       end if
 
       if (sum(X(n + 1:2*n)*Xold(n + 1:2*n)) < 0) then  ! critical point detected between x and w phases
@@ -1199,7 +1218,7 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
          Pcri(ncri) = Pv(i - 1) + frac*(P - Pv(i - 1))
          Dcri(ncri) = Dv(i - 1) + frac*(Dv(i) - Dv(i - 1))
          iw = -iw
-         ix = -yx
+         ix = -ix
       end if
 
       if (run) then
@@ -1207,25 +1226,33 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
          ! dgesv( n, nrhs, a, lda, ipiv, b, ldb, info )
          bd = -dFdS
          AJ = JAC
+
          call dgesv(2*n + 3, 1, AJ, lda, ipiv, bd, ldb, info)
-         if (info .ne. 0) then
-            print *, "error with dgesv in parameter ", info, "1125"
-         end if
+         ! if (info .ne. 0) then
+         !    print *, "error with dgesv in parameter ", info, "1125"
+         ! end if
          dXdS = bd
+
          ! Selection of (the most changing) variable to be specified for the next point
          nsold = ns
          ns = maxloc(abs(dXdS), DIM=1)
+
          if (maxval(abs(X(:n))) < 0.2) then
-            ns = maxloc(abs(dXdS(1:n)), DIM=1)  ! vars other than logK not allowed to be chosen close to a y-x critical point
+            ! vars other than logK not allowed to be chosen close to a y-x critical point
+            ns = maxloc(abs(dXdS(1:n)), DIM=1)  
          end if
+
          if (maxval(abs(X(n + 1:2*n))) < 0.2) then
-            ns = maxloc(abs(dXdS(n + 1:2*n)), DIM=1)  ! vars other than logKs not allowed to be chosen close to a w-x critical point
+            ! vars other than logKs not allowed to be chosen close to a w-x critical point
+            ns = maxloc(abs(dXdS(n + 1:2*n)), DIM=1) 
          end if
+
          if (ns /= nsold) then
             delS = dXdS(ns)*delS    ! translation of delS to the  new specification variable
             dXdS = dXdS/dXdS(ns)    ! translation of sensitivities
             S = X(ns)               ! update of S
          end if
+
          ! Setting step in S for the next point to be calculated
          delmax = max(sqrt(abs(X(ns)))/10, 0.1)
          updel = delS*3/iter
@@ -1235,24 +1262,13 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
          else
             delS = max(updel, -delmax)
          end if
+
          S = S + delS
          ! Generation of estimates for the next point
          Told = T
          Xold = X
          X = Xold + dXdS*delS
          if (passingcri) passingcri = .false.
-
-         ! do while (maxval(abs(X(:n)))<0.03)  ! approaching the black hole... get out of there! (0.03)
-         !       stepX = maxval(abs(X(:n)-Xold(:n))) ! the step given by the most changing logK to fall into the black hole
-         !       passingcri = .true.
-         !       if (stepX > 0.07) then
-         !           S = S - delS/2
-         !           X = X - dXdS * delS/2   !  half step back
-         !       else
-         !           S = S + delS
-         !           X = X + dXdS * delS   ! one more step to jump over the critical point
-         !       end if
-         ! end do
 
          if (maxval(abs(X(:n))) < 0.03) then  ! approaching the black hole... get out of there!
             if (delS > 0) delS = 0.04 - S
@@ -1264,30 +1280,35 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
 
          black_i = 0
 
-         do while (maxval(abs(X(n + 1:2*n))) < 0.03)  ! approaching the black hole... get out of there! (0.03)
+         do while (maxval(abs(X(n + 1:2*n))) < 0.03) ! approaching the black hole... get out of there! (0.03)
             black_i = black_i + 1
-            if (black_i > 10) then
-               print *, "Stuck on the black hole 2"
-            end if
+
+            ! if (black_i > 10) then
+            !    print *, "Stuck on the black hole 2"
+            ! end if
+
             stepX = maxval(abs(X(n + 1:2*n) - Xold(n + 1:2*n))) ! the step given by the most changing logKs to fall into the black hole
             passingcri = .true.
+
             if (stepX > 0.07) then
                S = S - delS/2
-               X = X - dXdS*delS/2   !  half step back
+               X = X - dXdS*delS/2 ! half step back
             else
                S = S + delS
-               X = X + dXdS*delS   ! one more step to jump over the critical point
+               X = X + dXdS*delS ! one more step to jump over the critical point
             end if
          end do
 
          T = exp(X(2*n + 1))
 
-         if (.not. passingcri .and. abs(T - Told) > 7) then ! Delta T estimations > 7K are not allowed
+         if (.not. passingcri .and. abs(T - Told) > 7) then 
+            ! Delta T estimations > 7K are not allowed
             delS = delS/2
             S = S - delS
             X = Xold + dXdS*delS
             T = exp(X(2*n + 1))
          end if
+
          P = exp(X(2*n + 2))
          KFACT = exp(X(:n))
          KFsep = exp(X(n + 1:2*n))
@@ -1295,25 +1316,58 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
          xx = z/(1 - beta + beta*KFsep)
          y = KFACT*xx
          w = KFsep*xx
-         if ((dXdS(2*n + 1)*delS < 0 .and. P < 0.1 .or. T < 120.0) &  ! this may need adjustment
-             .or. (P > 1.0 .and. T < 150.0) &
-             .or. (P > 1500) &
-             .or. (abs(dels) < 1.d-4)) then
+
+         if (&! this might need adjustment
+             (dXdS(2*n + 1)*delS < 0 .and. P < 0.1 .or. T < 120.0) &  ! Finish on low P and T
+             .or. (P > 1.0 .and. T < 150.0) & ! Finish on low T
+             .or. (P > 1500) & ! Finish on high P
+             .or. (abs(dels) < 1.d-8)) then ! Finish on low delS
             run = .false.
          end if
       end if
 
+      tmp_logk(i, :) = kfact
+      tmp_logks(i, :) = KFsep
+      tmp_x(i, :) = xx
+      tmp_y(i, :) = y
+      tmp_w(i, :) = w
+      tmp_beta(i) = beta
+      
+      ! print *, T, P, ns, iter
+
    end do
+   n_points = i - 1
    
    !-----------------------------------------------------------
+   this_envelope%z = z
+   this_envelope%p = pv(:n_points)
+   this_envelope%t = tv(:n_points)
+   this_envelope%logk = tmp_logk(:n_points, :)
+   this_envelope%logks = tmp_logks(:n_points, :)
+   this_envelope%x = tmp_x(:n_points, :)
+   this_envelope%y = tmp_y(:n_points, :)
+   this_envelope%w = tmp_w(:n_points, :)
+   this_envelope%beta = tmp_beta
 
-   print *, y
-   print *, rho_x
-   print *, rho_y
-   print *, beta
+   ! print *, y
+   ! print *, rho_x
+   ! print *, rho_y
+   ! print *, beta
 1  format(7F10.4, 2I4)
 3  format(3F10.4, 6E12.3)
 end subroutine envelope3
+
+pure subroutine f_two_phase(n, x, f, df)
+   use constants, only: pr
+   implicit none
+
+   integer, intent(in) :: n
+   real(pr), intent(in) :: x
+   real(pr), intent(out) :: f(n + 2)
+   real(pr), intent(out) :: df(n + 2, n + 2)
+
+   real(pr) :: p, t
+end subroutine
 
 subroutine EvalFEnvel3(n, z, X, F)
    use constants
@@ -1343,48 +1397,3 @@ subroutine EvalFEnvel3(n, z, X, F)
    F(2*n + 2) = sum(w - xx)
    F(2*n + 3) = X(25) - S
 end subroutine EvalFEnvel3
-
-!        eps = 1.d-6
-!        call EvalFEnvel3(n,z,X,F)
-!        x(2) = x(2)+eps
-!        call EvalFEnvel3(n,z,X,Fp)
-!        x(2) = x(2)-eps
-!        JACnumK2 = (Fp-F)/eps
-!        write(2,*)'JACnumK2: ',JACnumK2
-!
-!        x(n) = x(n)+eps
-!        call EvalFEnvel3(n,z,X,Fp)
-!        x(n) = x(n)-eps
-!        JACnumKn = (Fp-F)/eps
-!        write(2,*)'JACnumKn: ',JACnumKn
-!
-!        x(n+2) = x(n+2)+eps
-!        call EvalFEnvel3(n,z,X,Fp)
-!        x(n+2) = x(n+2)-eps
-!        JACnumKs2 = (Fp-F)/eps
-!        write(2,*)'JACnumKs2: ',JACnumKs2
-!
-!        x(2*n) = x(2*n)+eps
-!        call EvalFEnvel3(n,z,X,Fp)
-!        x(2*n) = x(2*n)-eps
-!        JACnumKsn = (Fp-F)/eps
-!        write(2,*)'JACnumKsn: ',JACnumKsn
-!
-!        x(2*n+1) = x(2*n+1)+eps
-!        call EvalFEnvel3(n,z,X,Fp)
-!        x(2*n+1) = x(2*n+1)-eps
-!        JACnumlT = (Fp-F)/eps
-!        write(2,*)'JACnumlT: ',JACnumlT
-!
-!        x(2*n+2) = x(2*n+2)+eps
-!        call EvalFEnvel3(n,z,X,Fp)
-!        x(2*n+2) = x(2*n+2)-eps
-!        JACnumlP = (Fp-F)/eps
-!        write(2,*)'JACnumlP: ',JACnumlP
-!
-!        x(2*n+3) = x(2*n+3)+eps
-!        call EvalFEnvel3(n,z,X,Fp)
-!        x(2*n+3) = x(2*n+3)-eps
-!        JACnumB = (Fp-F)/eps
-!        write(2,*)'JACnumB: ',JACnumB
-
