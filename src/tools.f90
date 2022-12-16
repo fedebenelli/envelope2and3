@@ -51,16 +51,21 @@ module io
    implicit none
 
    interface str
-      module procedure :: str_int
+      module procedure :: str_gen
    end interface
 
 contains
-   function str_int(int_in) result(str_out)
-      integer, intent(in) :: int_in
+   function str_gen(int_in) result(str_out)
+      class(*), intent(in) :: int_in
       character(len=100) :: str_mid
       character(len=:), allocatable :: str_out
 
-      write (str_mid, *) int_in
+      select type(int_in)
+      type is (real)
+         write (str_mid, *) int_in
+      type is (integer)
+         write (str_mid, *) int_in
+      end select
       str_out = adjustl(trim(str_mid))
    end function
 end module io
