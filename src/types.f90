@@ -13,8 +13,8 @@ module dtypes
    public :: find_cross
    
    type :: critical_point
-      real(8) :: t
-      real(8) :: p
+      real(pr) :: t
+      real(pr) :: p
    end type critical_point
 
    type :: envelope
@@ -38,10 +38,9 @@ module dtypes
       procedure :: write => write_envel_3
    end type env3
 
-
    type :: cross
-      real(kind(1.q0)) :: x
-      real(kind(1.q0)) :: y
+      real(pr) :: x
+      real(pr) :: y
       integer :: i
       integer :: j
    end type cross
@@ -52,7 +51,7 @@ contains
       class(envelope), intent(in):: self
       character(len=*), optional, intent(in) :: file_name
       character(len=:), allocatable :: filename
-      integer :: i, j, n, file_unit, n_components
+      integer :: i, n, file_unit, n_components
 
       if (present(file_name)) then
          filename = file_name
@@ -68,7 +67,9 @@ contains
                 z => self%z &
           )
          open(newunit=file_unit, file=filename)
-            write(file_unit, *) "P ", "T ", ("logk" // str(i), i=1,n_components), ("z" // str(i), i=1,n_components)
+            write(file_unit, *) &
+             "P ", "T ", ("K" // str(i), i=1,n_components), &
+             ("z" // str(i), i=1,n_components)
             do i=1,n
                write(file_unit, *) p(i), t(i), logk(i, :), z
             end do
@@ -81,13 +82,15 @@ contains
       class(env3), intent(in):: self
       character(len=*), optional, intent(in) :: file_name
       character(len=:), allocatable :: filename
-      integer :: i, j, n, file_unit
+      integer :: i, n, file_unit, n_components
 
       if (present(file_name)) then
          filename = file_name
       else 
          filename = "thriphasicOUT"
       end if
+
+      n_components = size(self%z)
 
       associate(t => self%t, p => self%p, &
           logk => self%logk, logks => self%logks, &
@@ -96,7 +99,9 @@ contains
       n = size(self%t)
 
       open(newunit=file_unit, file=filename)
-      write(file_unit, *) "P ", "T ", ("logk ", i=1,8), ("logks ", i=1,8), ("x ", i=1,8), ("y ", i=1,8), ("w ", i=1,8)
+      write(file_unit, *) "P ", "T ", ("K" // str(i), i=1,n_components), &
+         ("KS" // str(i), i=1,n_components), &
+         ("x" // str(i), i=1,n_components), ("y" // str(i), i=1,n_components), ("w" // str(i), i=1,n_components)
       do i=1,n
          write(file_unit, *) p(i), t(i), logk(i, :), logks(i, :), x(i, :), y(i, :), w(i, :)
       end do
@@ -198,6 +203,10 @@ contains
                (ylow <= y_cross) .and. (y_cross <= yup) &
                ) then
                print *, "CROSS:", i, j, x_cross, y_cross
+
+               ! TODO: This should get back, but for some reason now
+               ! there is a dimension 0 error that didn't appear before
+
                if ((abs(x_cross - crossings(n)%x) < 0.1) .and. &
                    (abs(y_cross - crossings(n)%y) < 0.1)) then
                   print *, "CROSS: Repeated cross, skipping..."
@@ -206,11 +215,9 @@ contains
 
                current_cross = cross(x_cross, y_cross, i, j)
                n = n + 1
-
                crossings = [crossings, current_cross]
 
             end if
-
          end do
       end do
    end subroutine find_cross
