@@ -1,4 +1,3 @@
-
 program calc_envelope2and3
    use constants
    use io, only: str
@@ -114,6 +113,7 @@ subroutine readcase(n)
 
    type(envelope) :: dew_envelope, low_t_envelope, high_p_envelope
    type(env3) :: triphasic
+   logical :: highPLL_converged
 
    Tcr1 = 0.d0 ! T of 1st crossing point detected between different envelope segments
    Tcr2 = 0.d0
@@ -321,7 +321,9 @@ subroutine readcase(n)
       !  Inner envelopes calculation
       ! ------------------------------------------------------------------------
       print *, "Running 3phase with incipient vapor"
-      ichoice = 1   ! first inner curve: 3-phase bubble curve (incipient: V)
+
+      ! First inner curve: 3-phase bubble curve (incipient: V)
+      ichoice = 1
 
       ! Start from the low T bubble envelope first point
       if (allocated(low_t_envelope%t)) then
@@ -348,11 +350,14 @@ subroutine readcase(n)
       call triphasic%write("env23out/envelout-NOCROSS1")
 
       ! ------------------------------------------------------------------------
-
-      ichoice = 2 ! second inner curve: Lower AOP curve (incipient: Asph. or 2nd L)
+      ! second inner curve: Lower AOP curve (incipient: Asph. or 2nd L)
+      ichoice = 2 
       T = low_t_envelope% t(1)
       P = low_t_envelope% p(1)/2
       
+      ! ========================================================================
+      !  Find starting point for second inner curve
+      ! ------------------------------------------------------------------------
       FIRST = .true.
       spec = 'TP'
 
@@ -380,6 +385,7 @@ subroutine readcase(n)
       else
          P = 1.1*P
       end if
+
 
       do while (abs(dif) > 0.1 .and. P > 0.9)
          call flash(spec, FIRST, nmodel, n, z, tcn, pcn, omgn, acn, bn, k_or_mn, delta1n, &
@@ -420,6 +426,7 @@ subroutine readcase(n)
 
       KFACT = exp(PHILOGx - PHILOGy)
       KFsep = w/xx
+      ! ========================================================================
 
       call envelope3(ichoice, nmodel, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, omgn, acn, bn, k_or_mn, delta1n, &
                      Kij_or_K0n, Tstarn, Lijn, n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri, triphasic)
@@ -831,10 +838,11 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
 
          do while (maxval(abs(X(:n))) < 0.03)  ! approaching the black hole... get out of there! (0.03)
             black_i = black_i + 1
-            ! if (black_i > 50) then
-            !    print *, "Stuck on the black hole 1"
-            !    step_fixer = 3.d0
-            ! end if
+            if (black_i > 50) then
+                print *, "Stuck on the black hole 1"
+                step_fixer = 3.d0
+                if (black_i > 100) stop
+            end if
             stepX = maxval(abs(X(:n) - Xold(:n))) ! the step given by the most changing logK to fall into the black hole
             passingcri = .true.
             if (stepX > 0.07) then
@@ -1283,9 +1291,9 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
          do while (maxval(abs(X(n + 1:2*n))) < 0.03) ! approaching the black hole... get out of there! (0.03)
             black_i = black_i + 1
 
-            ! if (black_i > 10) then
-            !    print *, "Stuck on the black hole 2"
-            ! end if
+            if (black_i > 10) then
+               print *, "Stuck on the black hole 2"
+            end if
 
             stepX = maxval(abs(X(n + 1:2*n) - Xold(n + 1:2*n))) ! the step given by the most changing logKs to fall into the black hole
             passingcri = .true.

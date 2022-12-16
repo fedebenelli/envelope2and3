@@ -150,7 +150,7 @@ subroutine flash(spec, FIRST, model, n, z, tcn, pcn, omgn, acn, bn, k_or_mn, del
          step = -g/dg
          beta = beta + step
 
-         do while ((beta < bmin .or. bmax < beta) .and. step .ne. 0.d0) ! much better (GUARANTED!) 3/3/15
+         do while ((beta < bmin .or. bmax < beta) .and. step > 1e-10) ! much better (GUARANTED!) 3/3/15
             step = step/2
             beta = beta - step
          end do
@@ -241,15 +241,15 @@ subroutine flash(spec, FIRST, model, n, z, tcn, pcn, omgn, acn, bn, k_or_mn, del
       !go to 31
    end if
    saveK(1:n) = KFACT
-3  format('KWilson ', 15E12.4)
-4  format('KFinal  ', 15E12.4)
+! 3  format('KWilson ', 15E12.4)
+! 4  format('KFinal  ', 15E12.4)
    !-----------------------------------------------------------
 
-   print *, x  ! Estos print son los que "lee" tanto Fluids como Sur
-   print *, y
-   print *, rho_x
-   print *, rho_y
-   print *, beta
+   ! print *, x  ! Estos print son los que "lee" tanto Fluids como Sur
+   ! print *, y
+   ! print *, rho_x
+   ! print *, rho_y
+   ! print *, beta
 end subroutine flash
 
 !             write(3,*) 'Kfact: ', Kfact
