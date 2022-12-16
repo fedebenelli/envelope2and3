@@ -6,8 +6,11 @@
 ## FCMODDIR=flag to set read/write .mod and .smod directory
 ## FCMODREADDIR=flag to set write-only .mod and .smod directory
 ## MODDIR=.mod and .smod directory (leave blank for root)
+
 OPT=-O0
-FCFLAGS:=$(OPT) -g
+FCFLAGS:=$(OPT) -g -fno-align-commons -Wall -Wextra -fcheck=all
+# -pg -fno-align-commons # -fprofile-arcs -ftest-coverage 
+
 ifeq  ($(FC), ifort)
 FC:=ifort
 LIBS:=-qmkl
@@ -48,11 +51,11 @@ TEST:=test
 FORTEXT:=f F fpp FPP for FOR ftn FTN f90 F90 f95 F95 f03 F03 f08 F08
 
 ## locate the source files
-SOURCES:=$(shell find ./src -regextype posix-awk -regex '.*\.($(subst $( ),|,$(FORTEXT)))$$')
+SOURCES:=$(shell find ./app ./src -regextype posix-awk -regex '.*\.($(subst $( ),|,$(FORTEXT)))$$')
 
 ## compilation and syntax-compilation commands
-COMPILE.f08 = $(FC) $(FCFLAGS) $(TARGET_ARCH) -g -c
-MAKEMOD.f08 = $(FC) $(FCFLAGS) $(TARGET_ARCH) $(FCSYNTAX) -g -c
+COMPILE.f08 = $(FC) $(FCFLAGS) $(TARGET_ARCH) -c
+MAKEMOD.f08 = $(FC) $(FCFLAGS) $(TARGET_ARCH) $(FCSYNTAX) -c
 
 ## create the mod and smod directory; define slashed version of MODDIR
 ifneq ($(MODDIR),)
@@ -90,13 +93,14 @@ ANCHORS:=$(addsuffix .anc, $(BASESOURCE))
 all: main
 
 main: $(OBJECTS)
-	$(FC) $(FCFLAGS) $(LIBS) -o bin/$@ $+
+	$(FC) $(FCFLAGS) -o bin/$@ $+ $(LIBS) 
 
 .PHONY: clean
 clean:
-	-$(RM) *.mod *.smod $(OBJECTS) $(ANCHORS) main
-	-$(TEST) -d $(MODDIR) && $(RM) -r $(MODDIR)
+	-$(RM) *.mod *.smod *.gcda src/*.gcno $(OBJECTS) $(ANCHORS) main
+#	-$(TEST) -d $(MODDIR) && $(RM) -r $(MODDIR)
 	-$(TEST) -d $(MODDIRTMP) && $(RM) -r $(MODDIRTMP)
+	-rm envelout* envelOUT.txt fort.* callgrind*
 
 ## syntax-only compilation rule: all anchor files depend on their source
 # $(call modsource-pattern-rule,extension)
