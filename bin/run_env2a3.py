@@ -193,8 +193,6 @@ def excel():
     """
 
 
-
-
 if __name__ == '__main__':
     EXEC = os.path.abspath(sys.argv[1])
     PATH = os.path.normpath(os.path.join(__file__, os.pardir))
@@ -213,7 +211,6 @@ if __name__ == '__main__':
             print("running single")
             run_fortran(0, "singleout")
 
-        
         elif sys.argv[2] == 'full':
             # Remove all runs
             shutil.rmtree("outfiles")
