@@ -15,19 +15,20 @@ module system
    real(pr), allocatable :: z(:)
 
    ! Critical constants
-   real(pr), allocatable :: tc(:)
-   real(pr), allocatable :: pc(:)
-   real(pr), allocatable :: dc(:)
-   real(pr), allocatable :: w(:)
+   real(pr), allocatable :: tc(:) !! Critical temperature
+   real(pr), allocatable :: pc(:) !! Critical pressure
+   real(pr), allocatable :: dc(:) !! Critical density
+   real(pr), allocatable :: w(:)  !! Acentric factor
 
    ! Model parameters
-   real(pr), allocatable :: ac(:)
-   real(pr), allocatable :: b(:)
-   real(pr), allocatable :: del1(:)
-   real(pr), allocatable :: k(:)
-   real(pr), allocatable :: kij(:, :)
-   real(pr), allocatable :: lij(:, :)
+   real(pr), allocatable :: ac(:) !! Critical attractive parameter
+   real(pr), allocatable :: b(:)  !! repulsive parameter
+   real(pr), allocatable :: del1(:) !! $$\delta_1$$ parameter
+   real(pr), allocatable :: k(:) !! Attractive parameter constant
+   real(pr), allocatable :: kij(:, :) !! Attractive BIP
+   real(pr), allocatable :: lij(:, :) !! Repulsive BIP
 
+   ! T dependant mixing rule parameters
    real(pr), allocatable :: kinf(:, :), tstar(:, :)
    real(pr), allocatable :: bij(:, :)
 
