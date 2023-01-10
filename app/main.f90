@@ -38,7 +38,7 @@ program calc_envelope2and3
 
 end program
 
-subroutine readcase(n)
+subroutine readcase(n, three_phase)
    use constants
    use system, only: z
    use dtypes, only: envelope, kfcross, cross, print_header, env3, find_cross
@@ -49,6 +49,7 @@ subroutine readcase(n)
    integer, parameter :: nco=64
    real(pr), parameter :: Pmax=700
    integer, intent(in) :: n
+   character(len=3), intent(in) :: three_phase
 
    real(pr) :: xx(n), w(n)
 
