@@ -32,7 +32,7 @@ program calc_envelope2and3
    end if
 
    call cpu_time(start_time)
-   call readcase(n)
+   call readcase(n, three_phase_arg)
    call cpu_time(end_time)
    print *, "Finished in " // str(end_time - start_time) // "seconds"
 
