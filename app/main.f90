@@ -110,7 +110,7 @@ subroutine readcase(n, three_phase)
    common /Tdep/ Kinf, Tstar
    common /lforin/ lij
    common /DewCurve/ ilastDewC, TdewC(800), PdewC(800), dewK(800, nco)
-   common /lowTbub/ TlowT, PlowT, KlowT, PHILOGxlowT !shared with envelope2
+   ! common /lowTbub/ TlowT, PlowT, KlowT, PHILOGxlowT !shared with envelope2
 
    ! common/CrossingPoints/Tcr1, Pcr1, Tcr2, Pcr2, KFcr1, Kscr1, KFcr2, Kscr2
    ! common/lowTKsep/KFsep1     !shared with envelope3
@@ -350,8 +350,8 @@ subroutine readcase(n, three_phase)
       y(n) = 1
       call TERMO(n, 1, 1, T, P, y, Vy, PHILOGy, DLPHIPy, DLPHITy, FUGNy)
 
-      ! K = bubble_fug/pure_heavy_fug, for two liquid phases 
-      KFsep = exp(PHILOGxlowT(1:n) - PHILOGy)
+      ! K = bubble_fug/pure_asph_fug, for two liquid phases 
+      KFsep = exp(low_t_envelope%logphi(1, :) - philogy)
       call envelope3(ichoice, nmodel, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, omgn, acn, bn, k_or_mn, delta1n, &
                      Kij_or_K0n, Tstarn, Lijn, n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri, triphasic)
       call WriteEnvel(n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
@@ -764,8 +764,8 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
       if (ichoice == 1 .and. i == 1) then ! save for starting later a 3-envel
          TlowT = T
          PlowT = P
-         KlowT(1:n) = KFACT
-         PHILOGxlowT(1:n) = PHILOGx
+         !KlowT(1:n) = KFACT
+         !PHILOGxlowT(1:n) = PHILOGx
       end if
       if (iter > max_iter) run = .false.
       if (P > maxP) maxP = P

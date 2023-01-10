@@ -289,12 +289,10 @@ subroutine DandTnder(NTD, nc, T, rn, D, dDi, dDiT, dDij, dDdT, dDdT2)
 end subroutine DandTnder
 
 subroutine DELTAnder(nc, rn, D1m, dD1i, dD1ij)
+   use system, only: ac, b, d1 => del1, rk => k, kij, ntdep => tdep
    implicit double precision(A - H, O - Z)
    parameter(nco=64)
-   double precision Kij(nco, nco)
    dimension rn(nc), dD1i(nc), dD1ij(nc, nc)
-
-   common /COMPONENTS/ ac(nco), b(nco), d1(nco), rk(nco), Kij, NTDEP
 
    D1m = 0.0D0
    do i = 1, nc
@@ -318,7 +316,6 @@ subroutine Bnder(nc, rn, Bmix, dBi, dBij)
    implicit double precision(A - H, O - Z)
 
    real(pr) :: rn(nc), dBi(nc), dBij(nc, nc), aux(nc)
-   ! common /bcross/ bij
 
    TOTN = sum(rn)
    Bmix = 0.0D0
@@ -343,12 +340,12 @@ end subroutine Bnder
 subroutine HelmRKPR(nco, NDE, NTD, rn, V, T, Ar, ArV, ArTV, ArV2, Arn, ArVn, ArTn, Arn2)
    !! Calculate the reduced residual Helmholtz Energy and it's derivatives with the RKPR EOS
    use constants
+   use system, only: ncomb => mixing_rule
    implicit double precision(A - H, O - Z)
    parameter(RGAS=0.08314472d0)
    real(pr) :: rn(nco), Arn(nco), ArVn(nco), ArTn(nco), Arn2(nco, nco)
    real(pr) :: dBi(nco), dBij(nco, nco), dD1i(nco), dD1ij(nco, nco)
    real(pr) :: dDi(nco), dDij(nco, nco), dDiT(nco)
-   common/rule/ncomb
 
    nc = nco
    TOTN = sum(rn)
@@ -693,13 +690,12 @@ end subroutine ArVnder
 subroutine Bcalc(nc, x, T, BMIX)
    ! This general subroutine provides the "co-volume" for specified composition,
    ! that will be used by Evalsecond or Vcalc
+   use system, only: nmodel => thermo_model, ncomb => mixing_rule
    implicit double precision(A - H, O - Z)
    dimension x(nc), dBi(nc), dBij(nc, nc)
-   common/MODEL/NMODEL
-   common/MIXRULE/NSUB
-   common/BMIX/B
-   common/NG/NGR
-   common/rule/ncomb
+   ! common/MIXRULE/NSUB
+   ! common/BMIX/B
+   ! common/NG/NGR
    NG = NGR
    if (NMODEL .eq. 5 .or. NMODEL .eq. 7) then
       ! CALL PARAGC(T,nc,NG,1)
