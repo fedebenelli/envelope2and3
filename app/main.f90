@@ -6,9 +6,12 @@ program calc_envelope2and3
    character(len=200) :: infile
    common/writeComp/Comp3ph, i1, i2
    real :: start_time, end_time
+   character(len=3) :: three_phase_arg
+   logical :: three_phase
 
    call system("rm env23out/envelout*")
    call get_command_argument(1, infile)
+   call get_command_argument(2, three_phase_arg)
 
    open (1, FILE=infile)! 'envelIN.txt')
    open (2, FILE='envelOUT.txt')
@@ -313,6 +316,10 @@ subroutine readcase(n)
 
    print *, Tcr1, Pcr1, "cross1"
    print *, Tcr2, Pcr2, "cross2"
+
+   if (three_phase /= "yes") then
+      call exit(0)
+   end if
 
    if (abs(Tcr1) < 1d-5) then ! no crossings
       print *, "no cross found"
