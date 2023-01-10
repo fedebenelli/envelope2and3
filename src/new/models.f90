@@ -1,3 +1,6 @@
+! This file contains prototype (not used) code, intended to better structurize
+! the whole codeset
+
 module helmholtz
    use constants
    type, abstract :: ArModel

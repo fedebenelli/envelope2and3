@@ -94,16 +94,20 @@ contains
 
       associate(t => self%t, p => self%p, &
           logk => self%logk, logks => self%logks, &
-          x => self%x, y => self%y, w => self%w  &
+          x => self%x, y => self%y, w => self%w, beta => self%beta  &
           )
       n = size(self%t)
 
       open(newunit=file_unit, file=filename)
-      write(file_unit, *) "P ", "T ", ("K" // str(i), i=1,n_components), &
+      write(file_unit, *) &
+          "P ", "T ", "beta ", &
+         ("K" // str(i), i=1,n_components), &
          ("KS" // str(i), i=1,n_components), &
-         ("x" // str(i), i=1,n_components), ("y" // str(i), i=1,n_components), ("w" // str(i), i=1,n_components)
+         ("x" // str(i), i=1,n_components), &
+         ("y" // str(i), i=1,n_components), &
+         ("w" // str(i), i=1,n_components)
       do i=1,n
-         write(file_unit, *) p(i), t(i), logk(i, :), logks(i, :), x(i, :), y(i, :), w(i, :)
+         write(file_unit, *) p(i), t(i), beta(i), logk(i, :), logks(i, :), x(i, :), y(i, :), w(i, :)
       end do
       close(file_unit)
       end associate

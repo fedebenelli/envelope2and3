@@ -84,6 +84,7 @@ subroutine readcase(n, three_phase)
 
    ! positions of the last saturation points before each critical point
    integer, dimension(4) :: icri
+
    ! T, P and Density of critical points
    real(pr), dimension(4) :: Tcri
    real(pr), dimension(4) :: Pcri
@@ -237,6 +238,7 @@ subroutine readcase(n, three_phase)
          ! New Kfactors interpolated for the right cross
          kfcr2 = kfcross(jcross, low_t_envelope%t, low_t_envelope%logk, Tcr2)
          kscr2 = kfcross(icross, dew_envelope%t, dew_envelope%logk, Tcr2)
+
       else
          Tcr1 = 0
          Pcr1 = 0
@@ -565,7 +567,7 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
 
    ! estimated K factors for first point (then used for every point)
    real(pr), dimension(n) :: KFACT
-   real(pr), dimension(nco) :: KFcr1, Kscr1, KFcr2, Kscr2, KlowT, PHILOGxlowT ! go in commonS (cannot have n dimension)
+   ! real(pr), dimension(nco) :: KFcr1, Kscr1, KFcr2, Kscr2, KlowT, PHILOGxlowT ! go in commons (cannot have n dimension)
 
    ! composition of the system
    real(pr), dimension(n), intent(in) :: z
@@ -703,7 +705,7 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
       max_iter = 100
       do while (maxval(abs(delX)) > 1.d-7 .and. iter <= max_iter)
          iter = iter + 1
-         !      nc,MTYP,INDIC,T,P,rn,V,PHILOG,DLPHI,DLPHIP,DLPHIT,FUGN
+         !          nc,MTYP,INDIC,T,P,rn,V,PHILOG,DLPHI,DLPHIP,DLPHIT,FUGN
          call TERMO(n, iy, 4, T, P, y, Vy, PHILOGy, DLPHIPy, DLPHITy, FUGNy)
          call TERMO(n, ix, 2, T, P, z, Vx, PHILOGx, DLPHIPx, DLPHITx, FUGNx)
          F(:n) = X(:n) + PHILOGy - PHILOGx  ! X(:n) are LOG_K
