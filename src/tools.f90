@@ -44,6 +44,33 @@ contains
       array = tmp_array
    end subroutine append_2d
 
+   pure function diff(array)
+      real(pr), intent(in) :: array(:)
+      real(pr) :: diff(size(array))
+
+      integer :: n
+      n = size(array)
+
+      diff(2:n) = array(2:n) - array(1:n-1)
+   end function
+
+   pure function mask(bool_array)
+      ! Receives a boolean array and returns an array with the index numbers
+      ! where they're true
+      logical, intent(in) :: bool_array(:)
+      integer, allocatable :: mask(:)
+
+      integer :: i
+
+      allocate(mask(0))
+      do i = 1,size(bool_array)
+         if (bool_array(i)) then
+             mask = [mask, i]
+         end if
+      end do
+
+   end function
+
 end module array_operations
 
 module io
