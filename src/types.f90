@@ -211,13 +211,13 @@ contains
                ! TODO: This should get back, but for some reason now
                ! there is a dimension 0 error that didn't appear before
 
-               if ((abs(x_cross - crossings(n)%x) < 0.1) .and. &
-                   (abs(y_cross - crossings(n)%y) < 0.1)) then
-                  print *, "CROSS: Repeated cross, skipping..."
-                  cycle
-               end if
+               ! if ((abs(x_cross - crossings(n)%x) < 0.1) .and. &
+               !     (abs(y_cross - crossings(n)%y) < 0.1)) then
+               !    print *, "CROSS: Repeated cross, skipping..."
+               !    cycle
+               ! end if
 
-               current_cross = cross(x_cross, y_cross, i, j)
+               current_cross = point(x_cross, y_cross, i, j)
                n = n + 1
                crossings = [crossings, current_cross]
 
