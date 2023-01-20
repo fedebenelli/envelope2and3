@@ -8,29 +8,30 @@ subroutine read2PcubicNC(nc, nin, nout)
 
    use constants
    use system, only: setup, SRK_factory, PR_factory, z, bij, kij_mod => kij
+   use system, only: z, nmodel => thermo_model, &
+                     tc, pc, dceos => dc, om => w, &
+                     ac, b, del1, k, kij, &
+                     ntdep => tdep, ncomb => mixing_rule, bij, kinf, tstar, lij
 
-   implicit double precision(A - H, O - Z)
+   implicit none
+   common /NAMES/ fluid
+
    integer, parameter :: nco=64
 
-   real(pr) :: Kij(nco, nco), lij(nco, nco), Kinf(nco, nco), Tstar(nco, nco)
-   real(pr) :: ac(nco), b(nco), del1(nco), k(nco), Vc(nc)
-   real(pr) :: lijk(nco, nco, nco), kijk(nco, nco, nco)
+   integer, intent(in) :: nc !! number of components
+   integer, intent(in) :: nin, nout !! IO units
 
    character*18 fluid(nco)
 
-   common /MODEL/ NMODEL
-   common /CRIT/ TC(nco), PC(nco), DCeos(nco), OM(nco)
-   common /NAMES/ fluid
-   common /COMPONENTS/ ac, b, del1, k, Kij, NTdep
-   common /COVOL/ b1(nco)
-   common /Tdep/ Kinf, Tstar
-   common /bcrosscub/ bijk(nco, nco, nco)
-   common /rule/ ncomb
-   common /lforin/ lij
+   real(pr) :: vc(nc)
+
+   integer :: i, j
 
    read (NIN, *) ncomb, NTDEP
+
+   call setup(nc, nmodel, ntdep, ncomb)
+
    Tstar = 0.d0
-   third = 1.0D0/3
    if (nmodel .eq. 1) then
       del1 = 1.0D0
       write (nout, *) ' Model: Soave-Redlich-Kwong (1972)'
@@ -38,6 +39,7 @@ subroutine read2PcubicNC(nc, nin, nout)
       del1 = 1.0D0 + sqrt(2.0)
       write (nout, *) ' Model: Peng-Robinson (1976)'
    end if
+
    write (nout, *) ' Fluid           Tc(K)       Pc(bar)  Vceos(L/mol)    W'
    do i = 1, nc
       read (NIN, '(A)') fluid(i)
@@ -62,12 +64,11 @@ subroutine read2PcubicNC(nc, nin, nout)
       end if
    end do
 
-   B1 = B
-
    write (nout, *) 'Fluid     ac(bar*L2/mol2)  b(L/mol)    d1      k'
    do I = 1, NC
       write (nout, 1) fluid(i), ac(i), b(i), del1(i), k(i)
    end do
+
    write (NOUT, *)
    if (ncomb .lt. 2) then
       if (NTDEP .eq. 0) then
@@ -90,33 +91,8 @@ subroutine read2PcubicNC(nc, nin, nout)
       do I = 1, NC
          write (NOUT, 6) FLUID(I), (Lij(j, i), j=1, i - 1)
       end do
-   else
-      if (NTDEP .eq. 0) then
-         write (NOUT, *) ' Kijk:     112      122'
-         write (NOUT, 7) K01, K02
-         write (NOUT, *)
-      else
-         write (NOUT, *) ' K0ijk:    112      122'
-         write (NOUT, 7) K01, K02
-         write (NOUT, *)
-         write (NOUT, *) 'Kinfijk:   112      122'
-         write (NOUT, 7) Kinf1, Kinf2
-         write (NOUT, *)
-         write (NOUT, *) 'Tstar  :   112      122'
-         write (NOUT, 8) Tstar1, Tstar2
-         write (NOUT, *)
-      end if
-      if (NTDEP .eq. 2) then
-         write (NOUT, *) ' Cijk:     112      122'
-         write (NOUT, 7) C1, C2
-         write (NOUT, *)
-      end if
-      write (NOUT, *) ' Lijk:     112      122'
-      write (NOUT, 7) Lijk(1, 1, 2), Lijk(1, 2, 2)
-      write (NOUT, *)
    end if
 
-   call setup(nc, nmodel, ntdep, ncomb)
 
    select case(nmodel)
       case (1)
@@ -137,8 +113,6 @@ subroutine read2PcubicNC(nc, nin, nout)
       end do
    end if
 
-   kij_mod = kij(:nc, :nc)
-
 1  format(A18, F8.3, 5x, F7.3, 3x, F7.3, 3x, F7.3)
 6  format(A18, 20F10.5)
 7  format(9x, F7.4, 2x, F7.4)
@@ -149,7 +123,7 @@ subroutine HelmSRKPR(nc, ND, NT, rn, V, T, Ar, ArV, ArTV, ArV2, Arn, ArVn, ArTn,
    use constants, only: pr, R
    use system, only: del1, mixing_rule
 
-   implicit double precision(A - H, O - Z)
+   implicit real(pr)(A - H, O - Z)
 
    real(pr) :: rn(nc), Arn(nc), ArVn(nc), ArTn(nc), Arn2(nc, nc)
    real(pr) :: dBi(nc), dBij(nc, nc)
