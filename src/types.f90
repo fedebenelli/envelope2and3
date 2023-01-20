@@ -149,18 +149,18 @@ contains
       !!  | --------| ------- | ---------------- | ----------------- |
       !!
 
-      real(pr), allocatable, intent(in)  :: tv1(:)  !! First line x values
-      real(pr), allocatable, intent(in)  :: tv2(:)  !! Second line x values
-      real(pr), allocatable, intent(in)  :: pv1(:)  !! First line y values
-      real(pr), allocatable, intent(in)  :: pv2(:)  !! Second line y values
+      real(pr), intent(in)  :: tv1(:)  !! First line x values
+      real(pr), intent(in)  :: tv2(:)  !! Second line x values
+      real(pr), intent(in)  :: pv1(:)  !! First line y values
+      real(pr), intent(in)  :: pv2(:)  !! Second line y values
 
-      type(cross), allocatable :: crossings(:) !! Array of crossings
-      type(cross) :: current_cross
+      type(point), allocatable :: crossings(:) !! Array of crossings
+      type(point) :: current_cross
 
-      real(pr) :: x11, x12, x21, x22, y11, y12, y21, y22
+      real :: x11, x12, x21, x22, y11, y12, y21, y22
 
-      real(pr) :: x_cross, y_cross, m1, b1, m2, b2, xlow, xup, ylow, yup
-      real(pr), dimension(2) :: xpair_1, xpair_2, ypair_1, ypair_2
+      real :: x_cross, y_cross, m1, b1, m2, b2, xlow, xup, ylow, yup
+      real, dimension(2) :: xpair_1, xpair_2, ypair_1, ypair_2
       integer :: i, j, n
 
       if (allocated(crossings)) then
