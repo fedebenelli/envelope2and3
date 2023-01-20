@@ -5,20 +5,14 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "This file",
-      "type": "python",
-      "request": "launch",
-      "program": "${file}",
-      "cwd": "${fileDirname}"
-    },
-    {
-      "name": "(gdb) Fortran",
+      "name": "(gdb) Launch",
       "type": "cppdbg",
       "request": "launch",
-      "program": "${workspaceFolder}/bin/main",
-      "args": [], // Possible input args for a.out
+      "program": "${workspaceFolder}/build/vscode/bin/Envelope2and3phases",
+      "args": ["new_file", "yes"],
       "stopAtEntry": true,
-      "cwd": "${workspaceFolder}/bin",
+      "cwd": "${workspaceFolder}",
+      "environment": [],
       "externalConsole": false,
       "MIMode": "gdb",
       "setupCommands": [
@@ -26,9 +20,39 @@
           "description": "Enable pretty-printing for gdb",
           "text": "-enable-pretty-printing",
           "ignoreFailures": true
+        },
+        {
+          "description": "Set Disassembly Flavor to Intel",
+          "text": "-gdb-set disassembly-flavor intel",
+          "ignoreFailures": true
         }
       ],
-      "preLaunchTask": "FDebug"
+      "preLaunchTask": "fpm: install"
+    },
+    {
+      "name": "(gdb) Launch Test",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/vscode/${relativeFileDirname}/${fileBasenameNoExtension}",
+      "args": [],
+      "stopAtEntry": true,
+      "cwd": "${workspaceFolder}/build/vscode/test",
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        },
+        {
+          "description": "Set Disassembly Flavor to Intel",
+          "text": "-gdb-set disassembly-flavor intel",
+          "ignoreFailures": true
+        }
+      ],
+      "preLaunchTask": "fpm: test Single File"
     }
   ]
 }
