@@ -10,7 +10,7 @@ subroutine readRKPRNC(nc, nin, nout)
    ! D=[0.428363, 18.496215, 0.338426, 0.660,789.723105, 2.512392]
    use constants
    use system, only: bij
-   implicit double precision(A - H, O - Z)
+   implicit real(pr)(A - H, O - Z)
    parameter(nco=64, RGAS=0.08314472d0)
    double precision Kij(nco, nco), lij(nco, nco), Kinf(nco, nco), Tstar(nco, nco)
    dimension ac(nco), b(nco), del1(nco), rk(nco), diam(nc), vc(nc)
@@ -289,12 +289,13 @@ subroutine DandTnder(NTD, nc, T, rn, D, dDi, dDiT, dDij, dDdT, dDdT2)
 end subroutine DandTnder
 
 subroutine DELTAnder(nc, rn, D1m, dD1i, dD1ij)
+   use constants
    use system, only: ac, b, d1 => del1, rk => k, kij, ntdep => tdep
-   implicit double precision(A - H, O - Z)
+   implicit real(pr)(A - H, O - Z)
    parameter(nco=64)
    dimension rn(nc), dD1i(nc), dD1ij(nc, nc)
 
-   D1m = 0.0D0
+   D1m = 0.0d0
    do i = 1, nc
       D1m = D1m + rn(i)*d1(i)
    end do
@@ -313,7 +314,7 @@ end subroutine DELTAnder
 subroutine Bnder(nc, rn, Bmix, dBi, dBij)
    use constants
    use system, only: bij
-   implicit double precision(A - H, O - Z)
+   implicit real(pr)(A - H, O - Z)
 
    real(pr) :: rn(nc), dBi(nc), dBij(nc, nc), aux(nc)
 
@@ -341,7 +342,7 @@ subroutine HelmRKPR(nco, NDE, NTD, rn, V, T, Ar, ArV, ArTV, ArV2, Arn, ArVn, ArT
    !! Calculate the reduced residual Helmholtz Energy and it's derivatives with the RKPR EOS
    use constants
    use system, only: ncomb => mixing_rule
-   implicit double precision(A - H, O - Z)
+   implicit real(pr)(A - H, O - Z)
    parameter(RGAS=0.08314472d0)
    real(pr) :: rn(nco), Arn(nco), ArVn(nco), ArTn(nco), Arn2(nco, nco)
    real(pr) :: dBi(nco), dBij(nco, nco), dD1i(nco), dD1ij(nco, nco)
@@ -420,8 +421,8 @@ end subroutine HelmRKPR
 subroutine TERMO(nc, MTYP, INDIC, T, P, rn, V, PHILOG, DLPHIP, DLPHIT, FUGN)
    !  MTYP      TYPE OF ROOT DESIRED (-1 vapor, 1 liquid, 0 lower Gibbs energy phase)
    !  rn        mixture mole numbers                        (input)
-   !  t         temperature (k)                             (input)
-   !  p         pressure    (bar)                           (input)
+   !  t         temperature (k)                             (input)x, y
+   !  p         pressure    (bar)                          (input)
    !  v         volume      (L)                            (output)
    !  PHILOG    vector of ln(phi(i)*P)                     (output)   INDIC < 5
    !  DLPHIT    t-derivative of ln(phi(i)) (const P, n)    (output)   INDIC = 2 or 4
@@ -434,7 +435,7 @@ subroutine TERMO(nc, MTYP, INDIC, T, P, rn, V, PHILOG, DLPHIP, DLPHIT, FUGN)
 
    integer, intent(in) :: nc !! Number of components
    integer, intent(in) :: indic !! Desired element, this should be setted with optionals
-   integer, intent(inout) :: mtyp !! Type of root desired (-1 vapor, 1 liquid, 0 lower Gr)
+   integer, intent(in) :: mtyp !! Type of root desired (-1 vapor, 1 liquid, 0 lower Gr)
    real(pr), intent(in) :: t !! Temperature [K]
    real(pr), intent(in) :: p !! Pressure [bar]
    real(pr), intent(in) :: rn(nc) !! Mixture mole numbers
@@ -463,7 +464,7 @@ subroutine TERMO(nc, MTYP, INDIC, T, P, rn, V, PHILOG, DLPHIP, DLPHIT, FUGN)
    if (INDIC .gt. 2) NDER = 2
    if (INDIC .eq. 2 .or. INDIC .eq. 4) NTEMP = 1
    TOTN = sum(rn)
-   if (P .le. 0.0d0) MTYP = 1
+   ! if (P .le. 0.0d0) MTYP = 1
    call VCALC(MTYP, NC, NTEMP, rn, T, P, V)
    RT = RGAS*T
    Z = V/(TOTN*RT)        ! this is Z/P
@@ -588,7 +589,7 @@ recursive subroutine VCALC(ITYP, nc, NTEMP, rn, T, P, V)
    ! OUTPUT:
    ! V:           VOLUME
    use constants
-   implicit double precision(A - H, O - Z)
+   implicit real(pr)(A - H, O - Z)
    parameter(RGAS=0.08314472d0)
    real(pr) ::  rn(nc)
    real(pr) ::  Arn(nc), ArVn(nc), ArTn(nc), Arn2(nc, nc)
@@ -690,13 +691,17 @@ end subroutine ArVnder
 subroutine Bcalc(nc, x, T, BMIX)
    ! This general subroutine provides the "co-volume" for specified composition,
    ! that will be used by Evalsecond or Vcalc
+   use constants, only: pr
    use system, only: nmodel => thermo_model, ncomb => mixing_rule
-   implicit double precision(A - H, O - Z)
-   dimension x(nc), dBi(nc), dBij(nc, nc)
+   implicit none
+   integer, intent(in) :: nc
+   real(pr), intent(in) :: T
+   real(pr), intent(out) :: bmix
+   real(pr) ::  x(nc), b, dBi(nc), dBij(nc, nc)
    ! common/MIXRULE/NSUB
    ! common/BMIX/B
    ! common/NG/NGR
-   NG = NGR
+   ! NG = NGR
    if (NMODEL .eq. 5 .or. NMODEL .eq. 7) then
       ! CALL PARAGC(T,nc,NG,1)
       ! PI=3.1415926536D0
