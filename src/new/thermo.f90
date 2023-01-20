@@ -193,15 +193,3 @@ contains
       Zc = y/(3._pr*y + d1 - 1.0_pr)
    end subroutine get_Zc_OMa_OMb
 end module system
-
-module envelopes
-   use constants
-   use dtypes
-
-   implicit none
-   private
-
-   interface skip_critical
-   end interface
-contains
-end module envelopes
