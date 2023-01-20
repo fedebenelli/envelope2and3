@@ -6,7 +6,7 @@ maintainer = "fedebenelli@outlook.com"
 copyright = "Copyright 2022, Federico E. Benelli"
 
 [build]
-link = ["lapack", "blas"]
+# link = ["lapack", "openblas"]
 auto-executables = true
 auto-tests = true
 auto-examples = true
