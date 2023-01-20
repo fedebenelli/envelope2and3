@@ -7,10 +7,11 @@ module dtypes
    private
    public :: envelope
    public :: env3
-   public :: cross
+   public :: point
    public :: kfcross
    public :: print_header
    public :: find_cross
+   public :: critical_point
    
    type :: critical_point
       real(pr) :: t
@@ -23,7 +24,7 @@ module dtypes
       real(pr), allocatable :: p(:) !! Pressure points
       real(pr), allocatable :: logk(:, :) !! ln(K) for each point
       real(pr), allocatable :: logphi(:, :) !! lnphi for each point
-      type(critical_point), allocatable :: critical_points !! Critical points
+      type(critical_point), allocatable :: critical_points(:) !! Critical points
    contains
       procedure :: write => write_envel_2
    end type envelope
@@ -34,29 +35,30 @@ module dtypes
       real(pr), allocatable :: y(:, :) !! 
       real(pr), allocatable :: w(:, :) !! 
       real(pr), allocatable :: logks(:, :) !! ln(Ks)
+      type(critical_point), allocatable :: ll_critical_points(:)
    contains
       procedure :: write => write_envel_3
    end type env3
 
-   type :: cross
+   type :: point
       real(pr) :: x
       real(pr) :: y
       integer :: i
       integer :: j
-   end type cross
+   end type point
 
 contains
    
    subroutine write_envel_2(self, file_name)
       class(envelope), intent(in):: self
-      character(len=*), optional, intent(in) :: file_name
+      character(len=*), optional, intent(in) :: file_name !! Ouptut file name
       character(len=:), allocatable :: filename
       integer :: i, n, file_unit, n_components
 
       if (present(file_name)) then
          filename = file_name
       else 
-         filename = "biphasicOUT"
+         filename = "envelout-2phase"
       end if
 
       n = size(self%t)
@@ -75,6 +77,18 @@ contains
             end do
          close(file_unit)
       end associate
+      
+      ! Write Critical Points file
+      filename = filename // "-CP"
+      open(newunit=file_unit, file=filename)
+         write(file_unit, *) "P ", "T "
+         associate (critical_points => self%critical_points)
+         do i = 1, size(self%critical_points)
+            write(file_unit, *) critical_points(i)%t,  critical_points(i)%p
+         end do
+         end associate
+      close(file_unit)
+
       deallocate(filename)
    end subroutine write_envel_2
 
@@ -87,7 +101,7 @@ contains
       if (present(file_name)) then
          filename = file_name
       else 
-         filename = "thriphasicOUT"
+         filename = "envelout-3phase"
       end if
 
       n_components = size(self%z)
@@ -111,6 +125,18 @@ contains
       end do
       close(file_unit)
       end associate
+      
+      ! Write Critical Points file
+      filename = filename // "-CP"
+      open(newunit=file_unit, file=filename)
+         write(file_unit, *) "P ", "T "
+         associate (critical_points => self%critical_points)
+         do i = 1, size(self%critical_points)
+            write(file_unit, *) critical_points(i)%t,  critical_points(i)%p
+         end do
+         end associate
+      close(file_unit)
+
       deallocate(filename)
    end subroutine write_envel_3
 
