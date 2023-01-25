@@ -1,3 +1,146 @@
+module envelopes
+   use constants, only: pr
+   use linalg, only: solve_system
+   use system, only: nc
+   implicit none
+contains
+   function X2(kfact, P, T) result(X)
+      real(pr), intent(in) :: kfact(nc)
+      real(pr), intent(in) :: P
+      real(pr), intent(in) :: T
+
+      real(pr) :: X(nc + 2)
+
+      integer :: n
+
+      n = size(kfact)
+
+      X(:n) = log(kfact)
+      X(n + 1) = log(T)
+      X(n + 2) = log(P)
+   end function
+
+   subroutine F2(incipient, z, y, X, S, ns, F, dF)
+      character(len=:), allocatable, intent(in) :: incipient
+      real(pr), intent(in) :: z(:)
+      real(pr), intent(in) :: X(nc + 2)
+      real(pr), intent(in) :: y(nc)
+      real(pr), intent(in) :: S
+      integer, intent(in) :: ns
+
+      real(pr), intent(out) :: F(nc + 2)
+      real(pr), intent(out) :: dF(nc + 2, nc + 2)
+
+      real(pr) :: Vx, Vy, lnfug_x(nc), lnfug_y(nc)
+      real(pr) :: dlnphi_dt_x(nc), dlnphi_dt_y(nc)
+      real(pr) :: dlnphi_dp_x(nc), dlnphi_dp_y(nc)
+      real(pr) :: dlnphi_dn_x(nc, nc), dlnphi_dn_y(nc, nc)
+
+      real(pr) :: T, P
+
+      integer :: ix, iy, n, j
+
+      n = size(z)
+      F = 0
+      dF = 0
+
+      T = exp(X(n+1))
+      P = exp(X(n+2))
+
+      select case(incipient)
+      case ("liquid")
+         ix = -1
+         iy = 1
+      case ("vapor")
+         ix = 1
+         iy = -1
+      case ("2ndliquid")
+         ix = 1
+         iy = 1
+      end select
+
+      call TERMO(n, iy, 4, T, P, y, Vy, lnfug_y, dlnphi_dp_y, dlnphi_dt_y, dlnphi_dn_y)
+      call TERMO(n, ix, 2, T, P, z, Vx, lnfug_x, dlnphi_dp_x, dlnphi_dt_x, dlnphi_dn_x)
+
+      F(:n) = X(:n) + lnfug_y - lnfug_x  ! X(:n) are LOG_K
+      F(n + 1) = sum(y - z)
+      F(n + 2) = X(ns) - S
+
+      do j=1,n
+         dF(:n, j) = dlnphi_dn_y(:, j) * y(j)
+         dF(j, j) = dF(j, j) + 1
+      end do
+
+      df(:n, n + 1) = T * (dlnphi_dt_y - dlnphi_dt_x)
+      df(:n, n + 2) = P * (dlnphi_dp_y - dlnphi_dp_x)
+
+      df(n + 1, :n) = y
+      df(n + 2, :) = 0
+      df(n + 2, ns) = 1
+   end subroutine F2
+
+   subroutine update_specification(iter, passingcri, X, dF, ns, S, delS, dXdS)
+      integer, intent(in) :: iter
+      logical, intent(in) :: passingcri
+      real(pr), intent(in) :: X(nc + 2)
+      real(pr), intent(in) :: dF(nc + 2, nc + 2)
+      integer, intent(in out) :: ns
+      real(pr), intent(in out) :: S
+      real(pr), intent(in out) :: delS
+      real(pr), intent(in out) :: dXdS(nc + 2)
+
+      real(pr) :: dF_dS(nc + 2)
+      real(pr) :: bd(nc + 2)
+      real(pr) :: AJ(nc + 2, nc + 2)
+      real(pr) :: delmax, updel
+      integer :: nsold
+
+      dF_dS = 0
+      call dFdS(dF_dS)
+
+      bd = -dF_dS
+      AJ = dF
+      dXdS = solve_system(AJ, bd)
+
+      ! Selection of (the most changing) variable to be specified for the next point
+      nsold = ns
+
+      ns = maxloc(abs(dXdS), dim=1)
+
+      if (maxval(abs(X(:nc))) < 0.2) then
+         ns = maxloc(abs(dXdS(:nc)), dim=1)  ! T and P not allowed to be chosen close to a critical point
+      end if
+
+      if (ns /= nsold) then
+         delS = dXdS(ns)*delS  ! translation of delS to the  new specification variable
+         dXdS = dXdS/dXdS(ns)  ! translation of sensitivities
+         S = X(ns)             ! update of S
+      end if
+
+      ! Setting step in S for the next point to be calculated
+      delmax = max(sqrt(abs(X(ns)))/10, 0.1)
+      updel = delS*3/iter
+
+      if (passingcri) updel = delS
+      if (delS > 0) then
+         delS = min(updel, delmax)
+      else
+         delS = max(updel, -delmax)
+      end if
+
+      S = S + delS
+   end subroutine
+
+   subroutine dFdS(dF_dS)
+      use system, only: nc
+      real(pr), intent(out) :: dF_dS(nc + 2)
+
+      dF_dS = 0
+      dF_dS(nc + 2) = -1
+   end subroutine dFdS
+end module envelopes
+
+
 program calc_envelope2and3
    use constants
    use io, only: str
@@ -677,6 +820,15 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
    iy = 1
    ix = 1
 
+   select case(ichoice)
+   case (1)
+      incipient_phase = "vapor"
+   case (2)
+      incipient_phase = "liquid"
+   case (3)
+      incipient_phase = "2ndliquid"
+   end select
+
    if (ichoice <= 2) then  ! low T bub (1) or dew (2)
       if (ichoice == 1) iy = -1
       if (ichoice == 2) ix = -1  ! x will be vapor phase during the first part, and liquid after a critical point is crossed
@@ -684,8 +836,9 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
       S = log(T)
       delS = 0.005
       y = KFACT*z ! Wilson estimate for vapor (or liquid) composition
-   else    ! (ichoice==3) high P L-L sat
-      PmaxDewC = maxval(PdewC(1:ilastDewC))
+   else    
+      ! (ichoice==3) high P L-L sat
+      ! PmaxDewC = maxval(PdewC(1:ilastDewC))
       ns = n + 2
       S = log(P)
       delS = -0.005
@@ -703,34 +856,18 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
       delX = 1.0
       iter = 0
       max_iter = 100
+
       do while (maxval(abs(delX)) > 1.d-7 .and. iter <= max_iter)
+         ! Solve point with full Newton method
+         call F2(incipient_phase, z, y, X, S, ns, F, JAC)
+
          iter = iter + 1
-         !          nc,MTYP,INDIC,T,P,rn,V,PHILOG,DLPHI,DLPHIP,DLPHIT,FUGN
-         call TERMO(n, iy, 4, T, P, y, Vy, PHILOGy, DLPHIPy, DLPHITy, FUGNy)
-         call TERMO(n, ix, 2, T, P, z, Vx, PHILOGx, DLPHIPx, DLPHITx, FUGNx)
-         F(:n) = X(:n) + PHILOGy - PHILOGx  ! X(:n) are LOG_K
-         F(n + 1) = sum(y - z)
-         F(n + 2) = X(ns) - S
 
-         do j = 1, n
-            JAC(1:n, j) = FUGNy(:, j)*y(j)  ! z*K=y
-            JAC(j, j) = JAC(j, j) + 1.d0
-         end do
-
-         JAC(1:n, n + 1) = T*(DLPHITy - DLPHITx)
-         JAC(1:n, n + 2) = P*(DLPHIPy - DLPHIPx)
-         JAC(n + 1, 1:n) = y
-         JAC(n + 2, :) = 0.d0
-         JAC(n + 2, ns) = 1.d0
-
-         ! call dgesv( n, nrhs, a, lda, ipiv, b, ldb, info )
+         ! TODO: For some reason passing JAC and -F breaks the system
+         !       update: it's because dgesv redefines A and B
          bd = -F
          AJ = JAC
-         call dgesv(n + 2, 1, AJ, lda, ipiv, bd, ldb, info)
-         ! if (info .ne. 0) then
-         !    print *, "error with dgesv in parameter ", info, "540"
-         ! end if
-         delX = bd
+         delX = solve_system(AJ, bd)
 
          if (i == 1) then
             do while (maxval(abs(delX)) > 5.0)   ! Too large Newton step --> Reduce it
@@ -772,8 +909,9 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
       if (iter > max_iter) run = .false.
       if (P > maxP) maxP = P
 
-      if (ichoice == 2 .and. i > 1) then
-         ! TODO: If this is the way the low p dew line finishes, I think this should be more strict
+      if (incipient_phase == "liquid" .and. i > 1) then
+         ! TODO: If this is the way the low p dew line finishes, 
+         ! I think this could be better, like using dPdT
          if (P < Pv(i - 1) .and. P < maxP/5 .and. T > 300) then
             run = .true.  ! to finish envelope going to low T bubble
          end if
@@ -789,8 +927,10 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
 
       ! rho_y = 1/Vy     incipient phase density
 
-      if (ichoice == 3 .and. P < 1.0) then
-         run = .false.   ! isolated LL line detected. Stop and start a new one from low T false bubble point
+      if (incipient_phase == "2ndliquid" .and. P < 1.0) then
+         ! isolated LL line detected. 
+         ! Stop and start a new one from low T false bubble point
+         run = .false.   
       end if
 
       if (sum(X(:n)*Xold(:n)) < 0) then  ! critical point detected
@@ -800,41 +940,21 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
          Tcri(ncri) = Tv(i - 1) + frac*(T - Tv(i - 1))
          Pcri(ncri) = Pv(i - 1) + frac*(P - Pv(i - 1))
          Dcri(ncri) = Dv(i - 1) + frac*(Dv(i) - Dv(i - 1))
-         iy = -iy
-         ix = -ix !! -yx WHY
+         
+         select case (incipient_phase)
+         case("liquid")
+            incipient_phase = "vapor"
+         case("vapor")
+            incipient_phase = "liquid"
+         end select
       end if
 
       if (run) then
          ! Calculation of sensitivities (dXdS)
          ! dgesv( n, nrhs, a, lda, ipiv, b, ldb, info )
-         bd = -dFdS
-         AJ = JAC
-         call dgesv(n + 2, 1, AJ, lda, ipiv, bd, ldb, info)
-         ! if (info .ne. 0) then
-         !    print *, "error with dgesv in parameter ", info, "760"
-         ! end if
-         dXdS = bd
-         ! Selection of (the most changing) variable to be specified for the next point
-         nsold = ns
-         ns = maxloc(abs(dXdS), DIM=1)
-         if (maxval(abs(X(:n))) < 0.2) then
-            ns = maxloc(abs(dXdS(1:n)), DIM=1)  ! T and P not allowed to be chosen close to a critical point
-         end if
-         if (ns /= nsold) then
-            delS = dXdS(ns)*delS    ! translation of delS to the  new specification variable
-            dXdS = dXdS/dXdS(ns)  ! translation of sensitivities
-            S = X(ns)               ! update of S
-         end if
-         ! Setting step in S for the next point to be calculated
-         delmax = max(sqrt(abs(X(ns)))/10, 0.1)
-         updel = delS*3/iter
-         if (passingcri) updel = delS
-         if (delS > 0) then
-            delS = min(updel, delmax)
-         else
-            delS = max(updel, -delmax)
-         end if
-         S = S + delS
+
+         call update_specification(iter, passingcri, X, JAC, ns, S, delS, dXdS)
+
          ! Generation of estimates for the next point
          Told2 = Told
          Told = T
@@ -894,6 +1014,11 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
    this_envelope%t = Tv(:n_points - 1)
    this_envelope%p = Pv(:n_points - 1)
    this_envelope%z = z
+
+   allocate(critical_points(ncri))
+   critical_points%t = tcri(:ncri)
+   critical_points%p = pcri(:ncri)
+   this_envelope%critical_points = critical_points
 
    ! print *, y
    ! print *, rho_x
