@@ -4,4 +4,5 @@ module constants
 
    integer, parameter :: pr = real64
    real(pr), parameter :: R = 0.08314472
+   character(len=254) :: database_path = "database/"
 end module constants
