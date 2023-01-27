@@ -16,4 +16,4 @@ library = false
 
 [dependencies]
 stdlib = { git="https://github.com/fortran-lang/stdlib", branch="stdlib-fpm" }
-
+toml-f = { git="https://github.com/toml-f/toml-f" }
