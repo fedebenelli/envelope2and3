@@ -12,6 +12,7 @@ module dtypes
    public :: print_header
    public :: find_cross
    public :: critical_point
+
    
    type :: critical_point
       real(pr) :: t
