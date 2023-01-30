@@ -1,12 +1,17 @@
 
 subroutine flash(spec, FIRST, model, n, z, tcn, pcn, omgn, acn, bn, k_or_mn, delta1n, &
                  Kij_or_K0n, Tstarn, Lijn, t, p, v, x, y, rho_x, rho_y, beta, iter)
-
-   implicit double precision(A - H, O - Z)
+   use constants
+   use system, only: & 
+                     nmodel => thermo_model, ncomb => mixing_rule, ntdep => tdep, &
+                     ac, b, delta1 => del1, rk_or_m => k, &
+                     tc, pc, dceos => dc, omg => w, &
+                     kij_or_k0 => kij, lij, bij
+   implicit real(pr)(A - H, O - Z)
    integer, parameter :: nco=64
-
-   ! M&M means the book by Michelsen and Mollerup, 2nd Edition (2007)
-
+   
+   common /keepK/ saveK, LOG_K2, Pold, Pold2, Told, Told2
+   
    ! Flash specification, eos id and  number of compounds in the system
    character*4, intent(in) :: spec
    logical FIRST, stopflash
@@ -52,33 +57,26 @@ subroutine flash(spec, FIRST, model, n, z, tcn, pcn, omgn, acn, bn, k_or_mn, del
    real*8 :: g0, g1  ! function g valuated at beta=0 and 1, based on Wilson K factors
    real*8 :: g, dg, bmin, bmax, Vy, Vx
 
-   real*8, dimension(nco, nco) :: Kij_or_K0, Tstar
+   ! real*8, dimension(nco, nco) :: Kij_or_K0, Tstar
    real*8, dimension(nco) :: saveK, LOG_K2
-   common/keepK/saveK, LOG_K2, Pold, Pold2, Told, Told2
-   common/CRIT/TC(nco), PC(nco), DCeos(nco), omg(nco)
-   common/COMPONENTS/ac(nco), b(nco), delta1(nco), rk_or_m(nco), Kij_or_K0, NTDEP
-   common/MODEL/NMODEL
-   common/rule/ncomb
-   common/bcross/bij(nco, nco)
-   common/Tdep/Kinf, Tstar
 
    ! Charging the commons(nco) from input arguments (n)
-   NMODEL = model
-   TC(:n) = tcn
-   PC(:n) = pcn
-   OMG(:n) = omgn
-   ac(:n) = acn
-   b(:n) = bn
-   delta1(:n) = delta1n
-   rk_or_m(:n) = k_or_mn
-   Kij_or_K0(:n, :n) = Kij_or_K0n
-   Kinf = 0.0d0
-   ncomb = 0  ! only  vdW combining rules and quadratic mixing rules by  the moment
-   Tstar(:n, :n) = Tstarn
+   ! NMODEL = model
+   ! TC(:n) = tcn
+   ! PC(:n) = pcn
+   ! OMG(:n) = omgn
+   ! ac(:n) = acn
+   ! b(:n) = bn
+   ! delta1(:n) = delta1n
+   ! rk_or_m(:n) = k_or_mn
+   ! Kij_or_K0(:n, :n) = Kij_or_K0n
+   ! Kinf = 0.0d0
+   ! ncomb = 0  ! only  vdW combining rules and quadratic mixing rules by  the moment
+   ! Tstar(:n, :n) = Tstarn
    ! b matrix for Classical or van der Waals combining rules:
    do i = 1, n
       do j = i, n
-         bij(i, j) = (1 - lijn(i, j))*(b(i) + b(j))/2
+         bij(i, j) = (1 - lij(i, j))*(b(i) + b(j))/2
          bij(j, i) = bij(i, j)
       end do
    end do
@@ -252,28 +250,14 @@ subroutine flash(spec, FIRST, model, n, z, tcn, pcn, omgn, acn, bn, k_or_mn, del
    ! print *, beta
 end subroutine flash
 
-!             write(3,*) 'Kfact: ', Kfact
-!             write(3,*) 'Indet: ', -1.0/(KFACT-1.D0)
-!             write(3,*) 'bmin: ', bmin
-!             write(3,*) 'bmax: ', bmax
-!             write(3,*) 'beta: ', beta
-!                beta = beta + step
-!             write(3,*) 'bnew: ', beta
-!             do beta=1.0005,1.0090,0.0005
-!                denom = 1+beta*(KFACT-1.D0)
-!                g = sum(z*(KFACT-1.D0) / denom)
-!                write(3,*) beta, g
-!             end do
-!                if(beta<bmin.or.beta>bmax)beta = beta - step/2
 
 subroutine betato01(n, z, KFACT)
-
    implicit none
-
    integer, intent(in) :: n  ! number of compounds in the system
    real*8, dimension(n), intent(in) :: z ! composition of the system
    real*8, dimension(n) :: KFACT  ! K factors (modified in this routine)
    real*8 :: g0, g1  ! function g valuated at beta=0 and 1, based on K factors
+
    g1 = 1.0
    do while (g0 < 0 .or. g1 > 0)
       g0 = sum(z*KFACT) - 1.D0
@@ -286,10 +270,9 @@ subroutine betato01(n, z, KFACT)
    end do
 end subroutine betato01
 
+
 subroutine betalimits(n, z, KFACT, bmin, bmax)
-
    implicit none
-
    integer, intent(in) :: n  ! number of compounds in the system
    real*8, dimension(n), intent(in) :: z, KFACT  ! composition of the system and K factors
    real*8, intent(out) :: bmin, bmax
@@ -312,5 +295,4 @@ subroutine betalimits(n, z, KFACT, bmin, bmax)
    end do
    bmin = maxval(vmin)
    bmax = minval(vmax)
-
 end subroutine betalimits

@@ -3,6 +3,7 @@ module system
    ! this should be later adapted into a simple oop system where an eos object
    ! stores the relevant parameters
    use constants, only: pr, R
+   use thermo_io, only: CubicSystem, read_system, size
    implicit none
 
    ! Model settings
@@ -247,4 +248,29 @@ contains
       OMb = 1._pr/(3._pr*y + d1 - 1.0_pr)
       Zc = y/(3._pr*y + d1 - 1.0_pr)
    end subroutine get_Zc_OMa_OMb
+
+   subroutine setup_from_toml(toml_file)
+      character(len=*), intent(in) :: toml_file
+
+      type(CubicSystem) :: thermo_system
+
+      call read_system(toml_file, thermo_system)
+
+      associate(sys => thermo_system)
+      select case (thermo_system%thermo_model)
+      case ("SoaveRedlichKwong")
+         call setup(size(sys%z), 1, 0, 0)
+         call SRK_factory(& 
+            moles_in=sys%z, tc_in=sys%tc, pc_in=sys%pc, w_in=sys%w &
+            ) 
+
+      case ("PengRobinson")
+         call setup(size(sys%z), 2, 0, 0)
+         call PR_factory(& 
+            moles_in=sys%z, tc_in=sys%tc, pc_in=sys%pc, w_in=sys%w &
+            ) 
+      case ("RKPR")
+      end select
+      end associate
+   end subroutine
 end module system

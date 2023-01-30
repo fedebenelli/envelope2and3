@@ -7,11 +7,12 @@ import numpy as np
 
 import pandas as pd
 
-import pathlib
 
-
-ENV23OUT = glob("env23out/envelout*")
 OUTDIR = "env23out/"
+
+
+def list_outfiles():
+    return glob("env23out/envelout*")
 
 
 def crossed_point(x_values, y_values, point):
@@ -135,14 +136,31 @@ def set_composition(infile, index=None, value=None, z=None):
     return z
 
 
-def run(infile, three_phase="yes"):
-    os.system(
-        f"fpm run --profile release -- {infile} {three_phase} > env23log 2> env23err; wait"  # noqa
+def run(infile, three_phase="yes", **kwargs):
+    extra_args = " ".join([f"--{kwarg} {kwargs[kwarg]}" for kwarg in kwargs])
+    run_string = (
+        f"fpm run {extra_args}"
+        f" -- {infile} {three_phase}"
+        f" > env23log 2> env23err; wait"
     )
+    print(run_string)
+    os.system(run_string)
 
 
 def read_envel(file):
     return pd.read_csv(file, delim_whitespace=True)
+
+
+def read_2phase(pri):
+    df_dew = read_envel(OUTDIR + "envelout2-DEW")
+    df_bub = read_envel(OUTDIR + "envelout2-LTBUB")
+
+    if pri:
+        df_hpll = read_envel(OUTDIR + "envelout2-HPLL")
+    else:
+        df_hpll = None
+
+    return df_dew, df_bub, df_hpll
 
 
 def show(df, index, prop, **kwargs):
@@ -154,38 +172,39 @@ def show(df, index, prop, **kwargs):
 
 
 def get_case():
-    ENV23OUT = glob("env23out/envelout*")
+    outfiles = list_outfiles()
+    long_string = " ".join(outfiles)
+    print(long_string)
 
-    long_string = " ".join(ENV23OUT)
-
+    three_phase = True if "envelout3" in long_string else False
     high_pressure_liquid = True if "HPLL" in long_string else False
     dsp_presence = False if "NOCROSS" in long_string else True
 
-    return high_pressure_liquid, dsp_presence
+    return high_pressure_liquid, dsp_presence, three_phase
 
 
 def read_nodsp(prim=False):
-    df_bub = read_envel(OUTDIR + "envelout-LTBUB")
-    df_dew = read_envel(OUTDIR + "envelout-DEW")
+    df_bub = read_envel(OUTDIR + "envelout2-LTBUB")
+    df_dew = read_envel(OUTDIR + "envelout2-DEW")
 
-    df_31 = read_envel(OUTDIR + "envelout-NOCROSS1")
-    df_32 = read_envel(OUTDIR + "envelout-NOCROSS2")
+    df_31 = read_envel(OUTDIR + "envelout3-NOCROSS1")
+    df_32 = read_envel(OUTDIR + "envelout3-NOCROSS2")
 
     return df_bub, df_dew, df_31, df_32
 
 
 def read_dsp(prim=False):
-    df_bub = read_envel(OUTDIR + "envelout-LTBUB")
-    df_dew = read_envel(OUTDIR + "envelout-DEW")
+    df_bub = read_envel(OUTDIR + "envelout2-LTBUB")
+    df_dew = read_envel(OUTDIR + "envelout2-DEW")
 
-    df_c11 = read_envel(OUTDIR + "envelout-CROSS11")
-    df_c12 = read_envel(OUTDIR + "envelout-CROSS12")
+    df_c11 = read_envel(OUTDIR + "envelout3-CROSS11")
+    df_c12 = read_envel(OUTDIR + "envelout3-CROSS12")
 
-    df_c21 = read_envel(OUTDIR + "envelout-CROSS21")
-    df_c22 = read_envel(OUTDIR + "envelout-CROSS22")
+    df_c21 = read_envel(OUTDIR + "envelout3-CROSS21")
+    df_c22 = read_envel(OUTDIR + "envelout3-CROSS22")
 
     if prim:
-        df_hpll = read_envel(OUTDIR + "envelout-HPLL")
+        df_hpll = read_envel(OUTDIR + "envelout2-HPLL")
     else:
         df_hpll = None
 
@@ -193,7 +212,7 @@ def read_dsp(prim=False):
 
 
 def read_envels():
-    prim, dsp = get_case()
+    prim, dsp, three_phase = get_case()
 
     if dsp:
         df_bub, df_dew, df_c11, df_c12, df_c21, df_c22, df_hpll = read_dsp(prim)
@@ -235,10 +254,8 @@ def plot_nodsp(stable=False):
     show(df_31, index, prop)
     show(df_32, index, prop)
 
-    plt.ylim(500)
 
-
-def plot_dsp(stable=True):
+def plot_dsp(stable=True, **kwargs):
     index = "T"
     prop = "P"
 
@@ -253,24 +270,33 @@ def plot_dsp(stable=True):
     df_dew, df_bub, df_hpll = envels["2phase"]
     df_c11, df_c12, df_c21, df_c22 = envels["3phase"]
 
-    show(df_dew, index, prop, label="dew", color="blue")
-    show(df_bub, index, prop, label="bub", color="black")
+    show(df_dew, index, prop, label="dew", color="blue", **kwargs)
+    show(df_bub, index, prop, label="bub", color="black", **kwargs)
 
-    show(df_c11, index, prop, ls="--")
-    show(df_c12, index, prop, ls="--")
+    show(df_c11, index, prop, ls="--", **kwargs)
+    show(df_c12, index, prop, ls="--", **kwargs)
 
-    show(df_c21, index, prop, ls="--")
-    show(df_c22, index, prop, ls="--")
+    show(df_c21, index, prop, ls="--", **kwargs)
+    show(df_c22, index, prop, ls="--", **kwargs)
 
     if prim:
-        show(df_hpll, index, prop, label="hpll", color="blue")
+        show(df_hpll, index, prop, label="hpll", color="blue", **kwargs)
 
 
-def plot(stable=True):
-    prim, dsp = get_case()
-    print("Case: ", prim, dsp)
+def plot(stable=True, **kwargs):
+    prim, dsp, three_phase = get_case()
+    print("Case: ", prim, dsp, three_phase)
 
-    if dsp:
-        plot_dsp(stable)
+    if three_phase:
+        if dsp:
+            plot_dsp(stable, **kwargs)
+        else:
+            plot_nodsp(stable)
     else:
-        plot_nodsp(stable)
+        index = "T"
+        prop = "P"
+        df_dew, df_bub, df_hpll = read_2phase(prim)
+        show(df_dew, index, prop, color="blue", **kwargs)
+        show(df_bub, index, prop, color="black", **kwargs)
+        if prim:
+            show(df_hpll, index, prop, color="red", **kwargs)
