@@ -64,8 +64,8 @@ contains
       allocate(bij(n, n))
    end subroutine setup
 
-   subroutine PR_factory(moles_in, ac_in, b_in, tc_in, pc_in, w_in, k_in)
-        !! PengRobinson factory
+   subroutine PR78_factory(moles_in, ac_in, b_in, tc_in, pc_in, w_in, k_in)
+        !! PengRobinson 78 factory
         real(pr), intent(in) :: moles_in(nc)
         real(pr), optional, intent(in) :: ac_in(nc)
         real(pr), optional, intent(in) :: b_in(nc)
@@ -123,6 +123,61 @@ contains
                end if
             end do
         end if
+   end subroutine
+
+   subroutine PR76_factory(moles_in, ac_in, b_in, tc_in, pc_in, w_in, k_in)
+      !! PengRobinson 78 factory
+      real(pr), intent(in) :: moles_in(nc)
+      real(pr), optional, intent(in) :: ac_in(nc)
+      real(pr), optional, intent(in) :: b_in(nc)
+      real(pr), optional, intent(in) :: tc_in(nc)
+      real(pr), optional, intent(in) :: pc_in(nc)
+      real(pr), optional, intent(in) :: w_in(nc)
+      real(pr), optional, intent(in) :: k_in(nc)
+
+      integer :: i
+
+      logical :: params_spec, critical_spec
+      real(pr) :: zc(nc), oma(nc), omb(nc)
+      real(pr) :: vceos(nc), al, be, ga(nc)
+      real(pr) :: RTc(nc)
+
+      del1 = 1 + sqrt(2.0_pr)
+      z = moles_in
+
+      params_spec = (present(ac_in) .and. present(b_in) .and. present(k_in))
+      critical_spec = (present(tc_in) .and. present(pc_in) .and. present(w_in))
+
+      if (params_spec) then
+         ac = ac_in
+         b = b_in
+         k = k_in
+
+         call get_Zc_OMa_OMb(del1, zc, oma, omb)
+         Tc = OMb * ac / (OMa * R* b)
+         RTc = R * Tc
+         Pc = OMb * RTc / b
+         Vceos = Zc * RTc / Pc
+         al = -0.26992
+         be = 1.54226
+         ga = 0.37464 - k
+         w = 0.5 * (-be + sqrt(be**2 - 4 * al * ga)) / al
+      else if (critical_spec) then
+         tc = tc_in
+         pc = pc_in
+         w = w_in
+         RTc = R*Tc
+
+         call get_Zc_OMa_OMb(del1, Zc, OMa, OMb)
+
+         ac = OMa * RTc**2 / Pc
+         b = OMb * RTc / Pc
+         Vceos = Zc * RTc / Pc
+         ! k (or m) constant to calculate attractive parameter depending on temperature
+         do i=1,nc
+            k(i) = 0.37464 + 1.54226 * w(i) - 0.26992 * w(i)**2
+         end do
+      end if
    end subroutine
 
    subroutine SRK_factory(moles_in, ac_in, b_in, tc_in, pc_in, w_in, k_in)
