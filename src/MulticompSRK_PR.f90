@@ -7,7 +7,8 @@ subroutine read2PcubicNC(nc, nin, nout)
    !    to assure thermodynamic consistency
 
    use constants
-   use system, only: setup, SRK_factory, PR_factory, z, bij, kij_mod => kij
+   use system, only: setup, SRK_factory, PR76_factory, PR78_factory, &
+                     z, bij, kij_mod => kij
    use system, only: z, nmodel => thermo_model, &
                      tc, pc, dceos => dc, om => w, &
                      ac, b, del1, k, kij, &
@@ -98,7 +99,9 @@ subroutine read2PcubicNC(nc, nin, nout)
       case (1)
          call SRK_factory(z, tc_in=tc, pc_in=pc, w_in=om)
       case (2)
-         call PR_factory(z, tc_in=tc, pc_in=pc, w_in=om)
+         call PR76_factory(z, tc_in=tc, pc_in=pc, w_in=om)
+      case (3)
+         call PR78_factory(z, tc_in=tc, pc_in=pc, w_in=om)
    end select
    
    write (NOUT, *)

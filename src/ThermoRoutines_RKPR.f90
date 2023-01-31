@@ -168,11 +168,11 @@ subroutine aTder(ac, Tc, k, T, a, dadT, dadT2)
 
    Tr = T/Tc
 
-   if (thermo_model .le. 2) then
+   if (thermo_model .le. 3) then
       a = ac*(1 + k*(1 - sqrt(Tr)))**2
       dadT = ac*k*(k - (k + 1)/sqrt(Tr))/Tc
       dadT2 = ac*k*(k + 1)/(2*Tc**2*Tr**1.5D0)
-   else
+   else if (thermo_model == 4) then
       a = ac*(3/(2 + Tr))**k
       dadT = -k*a/Tc/(2 + Tr)
       dadT2 = -(k + 1)*dadT/Tc/(2 + Tr)
@@ -671,12 +671,12 @@ subroutine ArVnder(nc, NDER, NTD, rn, V, T, Ar, ArV, ArTV, ArV2, Arn, ArVn, ArTn
    real(pr), intent(out) :: ar, arv, artv, arv2
    real(pr), intent(out) :: Arn(nc), ArVn(nc), ArTn(nc), Arn2(nc, nc)
 
-   if (NMODEL .le. 2) then
-      ! SRK or PR
+   if (NMODEL .le. 3) then
+      ! SRK or PR76/78
       call HelmSRKPR(nc, NDER, NTD, rn, V, T, Ar, ArV, ArTV, ArV2, Arn, ArVn, ArTn, Arn2)
-   else if (NMODEL .eq. 3) then
-      call HelmRKPR(nc, NDER, NTD, rn, V, T, Ar, ArV, ArTV, ArV2, Arn, ArVn, ArTn, Arn2)
    else if (NMODEL .eq. 4) then
+      call HelmRKPR(nc, NDER, NTD, rn, V, T, Ar, ArV, ArTV, ArV2, Arn, ArVn, ArTn, Arn2)
+   else if (NMODEL .eq. 5) then
       ! CALL HelmPCSAFT(NDER,NTD,rn,V,T,Ar,ArV,ArTV,ArV2,Arn,ArVn,ArTn,Arn2)
    else if (NMODEL .eq. 6) then
       ! CALL HelmSPHCT(NDER,NTD,rn,V,T,Ar,ArV,ArTV,ArV2,Arn,ArVn,ArTn,Arn2)
