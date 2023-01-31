@@ -127,7 +127,7 @@ contains
    end subroutine
 
    subroutine PR76_factory(moles_in, ac_in, b_in, tc_in, pc_in, w_in, k_in)
-      !! PengRobinson 78 factory
+      !! PengRobinson 76 factory
       real(pr), intent(in) :: moles_in(nc)
       real(pr), optional, intent(in) :: ac_in(nc)
       real(pr), optional, intent(in) :: b_in(nc)
@@ -182,7 +182,7 @@ contains
    end subroutine
 
    subroutine SRK_factory(moles_in, ac_in, b_in, tc_in, pc_in, w_in, k_in)
-        !! PengRobinson factory
+        !! SoaveRedlichKwong factory
         real(pr), intent(in) :: moles_in(nc)
         real(pr), optional, intent(in) :: ac_in(nc)
         real(pr), optional, intent(in) :: b_in(nc)
@@ -264,9 +264,9 @@ contains
             moles_in=sys%z, tc_in=sys%tc, pc_in=sys%pc, w_in=sys%w &
             ) 
 
-      case ("PengRobinson")
+      case ("PengRobinson76")
          call setup(size(sys%z), 2, 0, 0)
-         call PR_factory(& 
+         call PR76_factory(& 
             moles_in=sys%z, tc_in=sys%tc, pc_in=sys%pc, w_in=sys%w &
             ) 
       case ("RKPR")
