@@ -2,8 +2,11 @@ module envelopes
    use constants, only: pr
    use linalg, only: solve_system
    use system, only: nc
+   use dtypes, only: envelope
    implicit none
+
 contains
+
    function X2(kfact, P, T) result(X)
       real(pr), intent(in) :: kfact(nc)
       real(pr), intent(in) :: P
