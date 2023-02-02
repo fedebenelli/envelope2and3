@@ -527,7 +527,9 @@ subroutine readcase(n, three_phase)
       call TERMO(n, 1, 1, T, P, y, Vy, PHILOGy, DLPHIPy, DLPHITy, FUGNy)
 
       ! K = bubble_fug/pure_asph_fug, for two liquid phases 
-      KFsep = exp(low_t_envelope%logphi(1, :) - philogy)
+      call TERMO(n, 1, 1, T, P, z, Vx, PHILOGx, DLPHIPx, DLPHITx, FUGNx)
+      KFsep = exp(PHILOGx - philogy)
+
       call envelope3(ichoice, nmodel, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, omgn, acn, bn, k_or_mn, delta1n, &
                      Kij_or_K0n, Tstarn, Lijn, n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri, triphasic)
       call WriteEnvel(n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
@@ -893,18 +895,11 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
          KFACT = exp(X(:n))
          y = z*KFACT
          T = exp(X(n + 1))
-         P = exp(X(n + 2))       
+         P = exp(X(n + 2))
 
       end do
 
       ! Point converged (unless it jumped out because of high number of iterations)
-      if (ichoice == 2) dewK(i, :n) = X(:n)
-      if (ichoice == 1 .and. i == 1) then ! save for starting later a 3-envel
-         TlowT = T
-         PlowT = P
-         !KlowT(1:n) = KFACT
-         !PHILOGxlowT(1:n) = PHILOGx
-      end if
       if (iter > max_iter) run = .false.
       if (P > maxP) maxP = P
 
@@ -916,7 +911,6 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
          end if
       end if
 
-      ! print *, T, P, ns, iter
       Tv(i) = T
       Pv(i) = P
       Dv(i) = 1/Vx    ! saturated phase density
@@ -931,8 +925,12 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
          ! Stop and start a new one from low T false bubble point
          run = .false.   
       end if
+      
+      print *, incipient_phase, i, T, P, ns, iter
+      if (i > 750) exit
 
-      if (sum(X(:n)*Xold(:n)) < 0) then  ! critical point detected
+      if (sum(X(:n) * Xold(:n)) < 0) then  ! critical point detected
+         print *, "Found criticla!"
          ncri = ncri + 1
          icri(ncri) = i - 1
          frac = -Xold(ns)/(X(ns) - Xold(ns))
@@ -1010,7 +1008,6 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
    !-----------------------------------------------------------
 
    n_points = i
-   !-----------------------------------------------------------
 
    ! Define envelope values, omit the last point to avoid not really
    ! converged cases
@@ -1050,6 +1047,7 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
    !   ichoice=3 is used for cases where the initial saturated phase "xx" is the vapor (e.g. OilB with water from Lindeloff-Michelsen).
    !   y and w will correspond to the two liquid phases, with a beta fraction for w.
    use constants
+   use dtypes, only: env3, critical_point
    use system, only: & 
                      nmodel => thermo_model, ncomb => mixing_rule, ntdep => tdep, &
                      ac, b, delta1 => del1, rk_or_m => k, &
@@ -1156,6 +1154,7 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
    real(pr) :: tmp_y(max_points, n)
    real(pr) :: tmp_w(max_points, n)
    real(pr) :: tmp_beta(max_points)
+   type(critical_point), allocatable :: ll_critical_points(:), critical_points(:)
 
    character(len=:), allocatable :: incipient_phase
 
@@ -1511,18 +1510,6 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
 1  format(7F10.4, 2I4)
 3  format(3F10.4, 6E12.3)
 end subroutine envelope3
-
-pure subroutine f_two_phase(n, x, f, df)
-   use constants, only: pr
-   implicit none
-
-   integer, intent(in) :: n
-   real(pr), intent(in) :: x
-   real(pr), intent(out) :: f(n + 2)
-   real(pr), intent(out) :: df(n + 2, n + 2)
-
-   real(pr) :: p, t
-end subroutine
 
 subroutine EvalFEnvel3(n, z, X, F)
    use constants
