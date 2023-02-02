@@ -1,7 +1,8 @@
 ! This file contains prototype (not used) code, intended to better structurize
 ! the whole codeset
 
-module helmholtz
+
+module models
    use constants
    type, abstract :: ArModel
    contains
@@ -41,30 +42,7 @@ contains
       real(pr), intent(in) :: v
       real(pr), intent(out) :: ar
    end subroutine
+end module models
+
+module helmholtz
 end module helmholtz
-
-module peng_robinson
-   use constants
-   use helmholtz
-
-   type, extends(CubicEOS) :: PengRobinson
-   end type
-
-   interface setup_cubic
-      module procedure :: setup_pengrobinson
-   end interface
-contains
-
-   pure subroutine setup_pengrobinson(self, n, tc, pc, w)
-      class(PengRobinson), intent(in out) :: self
-      integer, intent(in) :: n
-      real(pr), intent(in) :: tc(n)
-      real(pr), intent(in) :: pc(n)
-      real(pr), intent(in) :: w(n)
-
-      self%tc = tc
-      self%pc = pc
-      self%w = w
-   end subroutine
-
-end module peng_robinson
