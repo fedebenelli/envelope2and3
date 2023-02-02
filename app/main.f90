@@ -189,6 +189,8 @@ subroutine readcase(n, three_phase)
    use system, only: z, nmodel => thermo_model, tc, pc, dceos => dc, omg => w, &
                      ac, b, delta1 => del1, rk_or_m => k, kij_or_k0 => kij, &
                      ntdep => tdep, ncomb => mixing_rule, bij, kinf, tstar, lij
+   use dtypes, only: envelope, kfcross, point, print_header, env3, find_cross
+   use array_operations, only: diff
 
    implicit real(pr)(A - H, O - Z)
 
@@ -257,6 +259,18 @@ subroutine readcase(n, three_phase)
    type(envelope) :: dew_envelope, low_t_envelope, high_p_envelope
    type(env3) :: triphasic
    logical :: highPLL_converged
+   logical, allocatable ::  msk(:)
+
+   interface
+   subroutine find_self_cross(array_x, array_y, found_cross)
+      use constants, only: pr
+      use dtypes, only: point
+      real(pr), intent(in) :: array_x(:)
+      real(pr), intent(in) :: array_y(size(array_x))
+      type(point), allocatable, intent(in out) :: found_cross(:)
+   end subroutine find_self_cross
+
+   end interface
 
    Tcr1 = 0.d0 ! T of 1st crossing point detected between different envelope segments
    Tcr2 = 0.d0
@@ -313,9 +327,21 @@ subroutine readcase(n, three_phase)
 
    ilastDewC = n_points
 
-   if (Tcr1 > 0.d0) then  ! self crossing detected (usual in some asymmetric hc mixtures)
+   call find_self_cross(dew_envelope%t, dew_envelope%p, crossings)
+   if (size(crossings) > 0) then  ! self crossing detected (usual in some asymmetric hc mixtures)
+      
+      ! Self Cross found
+      Tcr2 = crossings(1)%x
+      Pcr2 = crossings(1)%y
 
-   else if (P > Pmax) then  ! now run from Low T Bubble point
+      ! New Kfactors interpolated for the right cross
+      kfcr2 = kfcross( &
+         crossings(1)%i, dew_envelope%t, dew_envelope%logk, Tcr2 &
+      )
+      kscr2 = kfcr2
+   end if
+
+   if (P > Pmax) then  ! now run from Low T Bubble point
       print *, "Running LowTBub Line"
       call cpu_time(start_time)
       ichoice = 1
@@ -348,8 +374,12 @@ subroutine readcase(n, three_phase)
 
       ! Find the cross between two lines (in this case, dew envelope and
       ! (starting from) low temperature bubble envelope
-      call find_cross(dew_envelope%t, low_t_envelope%t, &
-                      dew_envelope%p, low_t_envelope%p, crossings)
+      if (Tcr2 < 1d-5) then
+         ! If there wasn't a self-cross in the dew line, find crossings between
+         ! dew and bub
+         call find_cross(dew_envelope%t, low_t_envelope%t, &
+                        dew_envelope%p, low_t_envelope%p, crossings)
+      end if
 
       if (size(crossings) > 1) then
          ! At least two crosses were found
@@ -440,22 +470,29 @@ subroutine readcase(n, three_phase)
          kfcr1 = kfcross(jcross, low_t_envelope%t, low_t_envelope%logk, Tcr1)
          kscr1 = kfcross(icross, high_p_envelope%t, high_p_envelope%logk, Tcr1)
 
-         ! Find cross between dew and bubble
-         call find_cross(dew_envelope%t, low_t_envelope%t, &
-                         dew_envelope%p, low_t_envelope%p, crossings)
-         Tcr2 = crossings(1)%x
-         Pcr2 = crossings(1)%y
-         icross = crossings(1)%i
-         jcross = crossings(1)%j
+         if (Tcr2 < 1) then
+            ! Find cross between dew and bubble
+            call find_cross(dew_envelope%t, low_t_envelope%t, &
+                           dew_envelope%p, low_t_envelope%p, crossings)
+            Tcr2 = crossings(1)%x
+            Pcr2 = crossings(1)%y
+            icross = crossings(1)%i
+            jcross = crossings(1)%j
 
-         ! New Kfactors interpolated for the right cross
-         kfcr2 = kfcross(jcross, low_t_envelope%t, low_t_envelope%logk, Tcr2)
-         kscr2 = kfcross(icross, dew_envelope%t, dew_envelope%logk, Tcr2)
+            ! New Kfactors interpolated for the right cross
+            kfcr2 = kfcross(jcross, low_t_envelope%t, low_t_envelope%logk, Tcr2)
+            kscr2 = kfcross(icross, dew_envelope%t, dew_envelope%logk, Tcr2)
+         end if
       end if
    end if
 
    print *, Tcr1, Pcr1, "cross1"
    print *, Tcr2, Pcr2, "cross2"
+
+   open(42, file="./env23out/DSPs")
+   do i = 1, size(crossings)
+      write(42, *) crossings(i)%x, crossings(i)%y
+   end do
 
    if (three_phase /= "yes") then
       call exit(0)
@@ -1515,3 +1552,44 @@ subroutine EvalFEnvel3(n, z, X, F)
    F(2*n + 2) = sum(w - xx)
    F(2*n + 3) = X(25) - S
 end subroutine EvalFEnvel3
+
+subroutine find_self_cross(array_x, array_y, found_cross)
+   use constants, only: pr
+   use array_operations, only: diff, mask
+   use dtypes, only: point, find_cross
+   real(pr), intent(in) :: array_x(:)
+   real(pr), intent(in) :: array_y(size(array_x))
+   type(point), allocatable, intent(in out) :: found_cross(:)
+
+   logical, allocatable :: filter(:)
+   integer, allocatable :: msk(:)
+   real(pr) :: min_x, max_x
+
+   integer :: i
+
+   filter = diff(array_x) > 0
+
+   i = 1
+   do while(filter(i))
+      ! Find the first ocurrence of a negative delta x
+      ! This will give the index of the nearest to cricondenterm value
+      i = i + 1
+   end do
+
+   msk = mask(filter(i:)) + i
+   max_x = maxval(array_x(msk))
+   min_x = minval(array_x(msk))
+
+   filter = array_x <= max_x - 5 .and. array_x >= min_x - 5 .and. array_y >= 10
+   msk = mask(filter)
+
+   call find_cross(&
+      array_x(msk), array_x(msk), array_y(msk), array_y(msk), found_cross &
+   )
+
+   if (size(found_cross) > 0) then
+      ! TODO: This assumes there is only one self-cross, should be better defined
+      idx = minloc(abs(array_y - found_cross(1)%y), dim=1)
+      found_cross(1)%i = idx
+   end if
+end subroutine find_self_cross
