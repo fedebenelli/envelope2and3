@@ -1,9 +1,9 @@
 module linalg
    !! Wrapper module around LAPACK's `dgesv`
+   use constants, only: pr
    implicit none
 contains
    function solve_system(a, b) result(x)
-      use constants, only: pr
       real(pr), intent(in out) :: b(:)
       real(pr), intent(in out) :: a(size(b), size(b))
 

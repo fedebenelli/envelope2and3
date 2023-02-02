@@ -200,7 +200,7 @@ subroutine readcase(n, three_phase)
 
    real(pr) :: xx(n), w(n)
 
-   real(pr) :: Kinf
+   ! real(pr) :: Kinf
    real(pr), dimension(n) :: Kfact, KFsep
    real(pr), dimension(nco) :: KFcr1, Kscr1, KFcr2, Kscr2, & 
                                KlowT, PHILOGxlowT ! go in commons (cannot have n dimension)
@@ -217,9 +217,6 @@ subroutine readcase(n, three_phase)
    ! interaction parameters matrices
    real(pr), dimension(n, n) :: Kij_or_K0n, Lijn
    real(pr), dimension(n, n) :: Tstarn
-
-   ! interaction parameters matrices in common
-   real(pr) :: Kij_or_K0(nco, nco), Lij(nco, nco), Tstar(nco, nco)
 
    ! T, P and Density of the calculated envelope
    real(pr) :: Tv(800)
@@ -245,23 +242,17 @@ subroutine readcase(n, three_phase)
    real(pr), dimension(n, n) :: FUGNx, FUGNy
    real(pr) :: start_time, end_time
 
-   type(cross), allocatable :: crossings(:)
+   type(point), allocatable :: crossings(:)
 
    character*4 :: spec
    logical FIRST
 
-   common /MODEL/ NMODEL
-   common /CRIT/ TC(nco), PC(nco), DCeos(nco), omg(nco)
-   common /COMPONENTS/ ac(nco), b(nco), delta1(nco), rk_or_m(nco), Kij_or_K0, NTDEP
-   common /rule/ ncomb
-   common /bcross/ bij(nco, nco)
-   common /Tdep/ Kinf, Tstar
-   common /lforin/ lij
-   common /DewCurve/ ilastDewC, TdewC(800), PdewC(800), dewK(800, nco)
+   ! common /DewCurve/ ilastDewC, TdewC(800), PdewC(800), dewK(800, nco)
    ! common /lowTbub/ TlowT, PlowT, KlowT, PHILOGxlowT !shared with envelope2
 
    ! common/CrossingPoints/Tcr1, Pcr1, Tcr2, Pcr2, KFcr1, Kscr1, KFcr2, Kscr2
-   ! common/lowTKsep/KFsep1     !shared with envelope3
+   common/lowTKsep/KFsep1     !shared with envelope3
+   real(pr) :: KFsep1(64)
 
    type(envelope) :: dew_envelope, low_t_envelope, high_p_envelope
    type(env3) :: triphasic
@@ -295,7 +286,8 @@ subroutine readcase(n, three_phase)
    lijn = lij(:n, :n)
 
    ! Start from dew curve at low T and P
-   ! Although the algorithm is written to start from a bubble point, here we invert the Wilson K factors
+   ! Although the algorithm is written to start from a bubble point,
+   ! here we invert the Wilson K factors
    ! and y will actually mean x (ichoice = 2)
 
    print *, "Running Dew Line"
@@ -316,11 +308,9 @@ subroutine readcase(n, three_phase)
                   Kij_or_K0n, Tstarn, Lijn, n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri, dew_envelope)
    call cpu_time(end_time)
    call WriteEnvel(n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
-   call dew_envelope%write("env23out/envelout-DEW")
+   call dew_envelope%write("env23out/envelout2-DEW")
    print *, "Done in: ", end_time-start_time
 
-   TdewC = Tv
-   PdewC = Pv
    ilastDewC = n_points
 
    if (Tcr1 > 0.d0) then  ! self crossing detected (usual in some asymmetric hc mixtures)
@@ -346,7 +336,7 @@ subroutine readcase(n, three_phase)
       call cpu_time(end_time)
       print *, "Done in: ", end_time-start_time
       call WriteEnvel(n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
-      call low_t_envelope%write("env23out/envelout-LTBUB")
+      call low_t_envelope%write("env23out/envelout2-LTBUB")
 
       ! ========================================================================
       !  Crossings finding
@@ -413,14 +403,14 @@ subroutine readcase(n, three_phase)
          difW = log(z(n)) + PHILOGx(n) - log(y(n)) - PHILOGy(n)
       end do
 
-      KFACT = 1.D-3
+      KFACT = 1.d-3
       KFACT(n) = 1/z(n)
       call envelope2(ichoice, nmodel, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn, k_or_mn, delta1n, &
                      Kij_or_K0n, Tstarn, Lijn, n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri, high_p_envelope)
       call cpu_time(end_time)
       print *, "Done in: ", end_time - start_time
 
-      call high_p_envelope%write("env23out/envelout-HPLL")
+      call high_p_envelope%write("env23out/envelout2-HPLL")
       call WriteEnvel(n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
 
       if (P < 15.0) then ! 5/6/22
@@ -434,7 +424,7 @@ subroutine readcase(n, three_phase)
          KFACT = PCn*exp(5.373*(1 + omgn)*(1 - TCn/T))/P
          call envelope2(ichoice, nmodel, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn, k_or_mn, delta1n, &
                         Kij_or_K0n, Tstarn, Lijn, n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri, low_t_envelope)
-         call low_t_envelope%write("env23out/envelout-LTBUB")
+         call low_t_envelope%write("env23out/envelout2-LTBUB")
          
          call WriteEnvel(n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
 
@@ -504,13 +494,13 @@ subroutine readcase(n, three_phase)
       call envelope3(ichoice, nmodel, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, omgn, acn, bn, k_or_mn, delta1n, &
                      Kij_or_K0n, Tstarn, Lijn, n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri, triphasic)
       call WriteEnvel(n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
-      call triphasic%write("env23out/envelout-NOCROSS1")
+      call triphasic%write("env23out/envelout3-NOCROSS1")
 
       ! ------------------------------------------------------------------------
       ! second inner curve: Lower AOP curve (incipient: Asph. or 2nd L)
       ichoice = 2 
-      T = low_t_envelope% t(1)
-      P = low_t_envelope% p(1)/2
+      T = low_t_envelope%t(1)
+      P = low_t_envelope%p(1)/2
       
       ! ========================================================================
       !  Find starting point for second inner curve
@@ -522,14 +512,6 @@ subroutine readcase(n, three_phase)
                  Kij_or_K0n, Tstarn, Lijn, t, p, v, xx, w, rho_x, rho_y, beta, iter)
       call TERMO(n, 1, 1, T, P, xx, Vx, PHILOGx, DLPHIPy, DLPHITy, FUGNy)
 
-      !y = z/(z(n) + z(n-1))
-      !y(:n-2) = 0.d0
-      y = 0
-      open(69, file="asph_init")
-      read(69, *) y(n), y(n-1)
-      close(69)
-      ! y(n) = 0.9
-      ! y(n-1) = 0.1
       y = 0 
       y(n) = 1
 
@@ -542,7 +524,6 @@ subroutine readcase(n, three_phase)
       else
          P = 1.1*P
       end if
-
 
       do while (abs(dif) > 0.1 .and. P > 0.9)
          call flash(spec, FIRST, nmodel, n, z, tcn, pcn, omgn, acn, bn, k_or_mn, delta1n, &
@@ -588,7 +569,7 @@ subroutine readcase(n, three_phase)
       call envelope3(ichoice, nmodel, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, omgn, acn, bn, k_or_mn, delta1n, &
                      Kij_or_K0n, Tstarn, Lijn, n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri, triphasic)
       call WriteEnvel(n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
-      call triphasic%write("env23out/envelout-NOCROSS2")
+      call triphasic%write("env23out/envelout3-NOCROSS2")
 
    else  ! at least one crossing
       if (ichoice /= 3) ichoice = 1
@@ -601,7 +582,7 @@ subroutine readcase(n, three_phase)
       call envelope3(ichoice, nmodel, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, omgn, acn, bn, k_or_mn, delta1n, &
                      Kij_or_K0n, Tstarn, Lijn, n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri, triphasic)
       call WriteEnvel(n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
-      call triphasic%write("env23out/envelout-CROSS11")
+      call triphasic%write("env23out/envelout3-CROSS11")
 
       if (ichoice /= 3) ichoice = 2
       T = Tcr1
@@ -613,10 +594,12 @@ subroutine readcase(n, three_phase)
       call envelope3(ichoice, nmodel, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, omgn, acn, bn, k_or_mn, delta1n, &
                      Kij_or_K0n, Tstarn, Lijn, n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri, triphasic)
       call WriteEnvel(n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
-      call triphasic%write("env23out/envelout-CROSS12")
+      call triphasic%write("env23out/envelout3-CROSS12")
    end if
 
    ! Maybe this should be inside the else above?
+   ! Not necesarily, there can be a single dsp. Still the whole logic
+   ! should be revised
    if (abs(Tcr2) > 1d-5) then
       print *, "second cross", Tcr2, Pcr2
       ichoice = 1
@@ -628,7 +611,7 @@ subroutine readcase(n, three_phase)
       call envelope3(ichoice, nmodel, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, omgn, acn, bn, k_or_mn, delta1n, &
                      Kij_or_K0n, Tstarn, Lijn, n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri, triphasic)
       call WriteEnvel(n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
-      call triphasic%write("env23out/envelout-CROSS21")
+      call triphasic%write("env23out/envelout3-CROSS21")
 
       ichoice = 2
       T = Tcr2
@@ -639,7 +622,7 @@ subroutine readcase(n, three_phase)
       call envelope3(ichoice, nmodel, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, omgn, acn, bn, k_or_mn, delta1n, &
                      Kij_or_K0n, Tstarn, Lijn, n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri, triphasic)
       call WriteEnvel(n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
-      call triphasic%write("env23out/envelout-CROSS22")
+      call triphasic%write("env23out/envelout3-CROSS22")
    end if
 
 end subroutine readcase
@@ -668,38 +651,40 @@ subroutine WriteEnvel(n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri)
    integer :: ncri
 
    character(len=200) :: filename
+   integer :: file_unit
 
    out_i = out_i + 1
    filename = "envelout"
    filename = outfile(filename, out_i)
 
-   open (unit=out_i, file=filename)
+   open(newunit=file_unit, file=filename)
 
-   !WRITE (out_i, *)
-   write (out_i, *) '   T(K)        P(bar)        D(mol/L)'
+   write (file_unit, *) '   T(K)        P(bar)        D(mol/L)'
    do i = 1, n_points
-      write (out_i, 1) Tv(i), Pv(i), Dv(i)
+      write (file_unit, 1) Tv(i), Pv(i), Dv(i)
    end do
 
 1  format(F12.4, 2E14.4, x, I4)
-   write (out_i, *)
-   write (out_i, *) ' Number of critical points found: ', ncri
-   write (out_i, *) '   T(K)        P(bar)        D(mol/L)'
+   write (file_unit, *)
+   write (file_unit, *) ' Number of critical points found: ', ncri
+   write (file_unit, *) '   T(K)        P(bar)        D(mol/L)'
    do i = 1, ncri
-      write (out_i, 1) Tcri(i), Pcri(i), Dcri(i), icri(i)
+      write (file_unit, 1) Tcri(i), Pcri(i), Dcri(i), icri(i)
    end do
-   close (out_i)
+   close (file_unit)
 end subroutine WriteEnvel
 
 subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn, k_or_mn, delta1n, &
                      Kij_or_K0n, Tstarn, Lijn, n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri, &
                      this_envelope)
    use constants
+   use dtypes, only: envelope, find_cross, point, critical_point
    use system, only: nc, nmodel => thermo_model, &
                      tc, pc, dceos => dc, omg => w, &
                      ac, b, delta1 => del1, rk_or_m => k, &
                      kij_or_k0 => kij, ntdep => tdep, ncomb => mixing_rule, bij,&
                      kinf, tstar, lij
+   use linalg, only: solve_system
 
    implicit real(pr)(A - H, O - Z)
 
@@ -764,15 +749,7 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
    real(pr) :: Vy, Vx
    logical :: run, passingcri, minT, minmaxT
 
-   real(pr), dimension(nco, nco) :: Kij_or_K0, Tstar
-
-   common /CRIT/ TC(nco), PC(nco), DCeos(nco), omg(nco)
-   common /COMPONENTS/ ac(nco), b(nco), delta1(nco), rk_or_m(nco), Kij_or_K0, NTDEP
-   common /MODEL/ NMODEL
-   common /rule/ ncomb
-   common /bcross/ bij(nco, nco)
-   common /Tdep/ Kinf, Tstar
-   common /DewCurve/ ilastDewC, TdewC(800), PdewC(800), dewK(800, nco)
+   ! common /DewCurve/ ilastDewC, TdewC(800), PdewC(800), dewK(800, nco)
    common /CrossingPoints/ Tcr1, Pcr1, Tcr2, Pcr2, KFcr1, Kscr1, KFcr2, Kscr2
    common /lowTbub/ TlowT, PlowT, KlowT, PHILOGxlowT
 
@@ -882,6 +859,7 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
          P = exp(X(n + 2))       
 
       end do
+
       ! Point converged (unless it jumped out because of high number of iterations)
       if (ichoice == 2) dewK(i, :n) = X(:n)
       if (ichoice == 1 .and. i == 1) then ! save for starting later a 3-envel
@@ -969,7 +947,9 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
          end do
 
          T = exp(X(n + 1))
-         if (.not. passingcri .and. abs(T - Told) > 7) then ! Delta T estimations > 7K are not allowed
+
+         if (.not. passingcri .and. abs(T - Told) > 7) then 
+            ! Delta T estimations > 7K are not allowed
             delS = delS/2
             S = S - delS
             X = Xold + dXdS*delS
@@ -979,14 +959,18 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
          P = exp(X(n + 2))
          KFACT = exp(X(:n))
          y = z*KFACT
+
+         ! Finish conditions
          if ((dXdS(n + 1)*delS < 0 .and. P < 0.1 .or. T < 120.0) &  ! dew line stops when P<0.1 bar or T<150K
              .or. (P > 1.0 .and. T < 150.0) &   ! bubble line stops when T<150K
              .or. (P > 1500) &
-             .or. (abs(dels) < 1.d-4)) then
+             .or. (abs(dels) < 1.d-6)) then
             run = .false.
          end if
       end if
+
    end do
+   !-----------------------------------------------------------
 
    n_points = i
    !-----------------------------------------------------------
@@ -1034,6 +1018,7 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
                      ac, b, delta1 => del1, rk_or_m => k, &
                      tc, pc, dceos => dc, omg => w, &
                      kij_or_k0 => kij, lij, bij
+   use linalg, only: solve_system
    implicit none
 
    integer, parameter :: max_points=800 !! Max number of points
@@ -1047,32 +1032,30 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
    ! eos id, number of compounds in the system and starting point type
    integer, intent(in) :: model, n, ichoice
 
-   real(pr) Kinf
-
    ! estimated T, P and "w" phase fraction for first point (then used for every point)
    real(pr) :: T, P, beta
 
    ! estimated K factors for first point (then used for every point)
-   real(pr), dimension(n) :: KFACT, KFsep
+   real(pr) :: KFACT(n), KFsep(n)
 
    ! composition of the system
-   real(pr), dimension(n), intent(in) :: z
+   real(pr), intent(in) :: z(n)
 
    ! pure compound physical constants
-   real(pr), dimension(n), intent(in) :: tcn
-   real(pr), dimension(n), intent(in) :: pcn
-   real(pr), dimension(n), intent(in) :: omgn
+   real(pr), intent(in) :: tcn(n)
+   real(pr), intent(in) :: pcn(n)
+   real(pr), intent(in) :: omgn(n)
 
    ! eos parameters
-   real(pr), dimension(n), intent(in) :: acn  ! in bar*(L/mol)**2
-   real(pr), dimension(n), intent(in) :: bn   ! in L/mol
-   real(pr), dimension(n), intent(in) :: delta1n  !only required for RKPR
-   real(pr), dimension(n), intent(in) :: k_or_mn  ! k for RKPR ; m for SRK/PR
+   real(pr), intent(in) :: acn(n)  ! in bar*(L/mol)**2
+   real(pr), intent(in) :: bn(n)   ! in L/mol
+   real(pr), intent(in) :: delta1n(n)  !only required for RKPR
+   real(pr), intent(in) :: k_or_mn(n)  ! k for RKPR ; m for SRK/PR
 
    ! interaction parameters matrices
-   real(pr), dimension(n, n), intent(in) :: Kij_or_K0n
-   real(pr), dimension(n, n), intent(in) :: Tstarn
-   real(pr), dimension(n, n), intent(in) :: Lijn
+   real(pr), intent(in) :: Kij_or_K0n(n, n)
+   real(pr), intent(in) :: Tstarn(n, n)
+   real(pr), intent(in) :: Lijn(n, n)
 
    ! T, P and Density of the calculated envelope
    real(pr), intent(out) :: Tv(max_points)
@@ -1083,11 +1066,12 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
    integer, intent(out) :: n_points
 
    ! positions of the last saturation points before each critical point
-   integer, dimension(4), intent(out) :: icri
+   integer, intent(out) :: icri(4)
+
    ! T, P and Density of critical points
-   real(pr), dimension(4), intent(out) :: Tcri
-   real(pr), dimension(4), intent(out) :: Pcri
-   real(pr), dimension(4), intent(out) :: Dcri
+   real(pr), intent(out) :: Tcri(4)
+   real(pr), intent(out) :: Pcri(4)
+   real(pr), intent(out) :: Dcri(4)
 
    ! number of valid elements in icri, Tcri, Pcri and Dcri arrays
    integer, intent(out) :: ncri
@@ -1098,15 +1082,36 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
    real(pr), dimension(n) :: DLPHITx, DLPHIPx, DLPHITy, DLPHIPy, DLPHITw, DLPHIPw
    real(pr), dimension(n, n) :: FUGNx, FUGNy, FUGNw
    integer, dimension(2*n + 3) :: ipiv
-   real(pr), dimension(2*n + 3) :: X, Xold, delX, bd, F, dFdS, dXdS
-   real(pr), dimension(2*n + 3, 2*n + 3) :: JAC, AJ
+   real(pr), dimension(2*n + 3) :: X, Xold, delX, F, dFdS, dXdS
+   real(pr) :: bd(2*n + 3), AJ(2*n + 3, 2*n + 3)
+   real(pr), dimension(2*n + 3, 2*n + 3) :: JAC
    real(pr) :: Vy, Vx, Vw
-   ! real(pr), dimension(2) :: TpairA, PpairA, TpairB, PpairB    ! crossing vars
-   logical :: run, passingcri, Comp3ph  !, Cross                       ! crossing var (Cross)
+   logical :: run, passingcri, Comp3ph  !, Cross                 ! crossing var (Cross)
 
-   real(pr), dimension(nco, nco) :: Kij_or_K0, Tstar
-   real(pr), dimension(nco) :: KFsep1
+   integer :: i, j, l ! Iteration variables
+   integer :: i1, i2 ! components to save out info about during calculations
+   integer :: ix, iy, iw ! Incipient phase?
+   integer :: lda, ldb ! Dimension of the system of equations
+   integer :: ns ! Number of specification
+   integer :: max_iter, iter ! Number of iterations during full newton
+   real(pr) :: rho_x, rho_y ! Phases densities
+   real(pr) :: frac ! 
 
+   ! Newton method variables
+   real(pr) :: Told ! Previous iteration temperature
+   integer :: info ! LAPACK's solve status
+  
+   ! Specification related variables 
+   integer :: nsold    ! Which specification is used
+   real(pr) :: s, dels ! Specification value and deltaS
+   real(pr) :: delmax  ! Maximum delta S based on deltaX
+   real(pr) :: updel   ! Maximum delta S based on iterations and previus delS
+
+   ! Critical points related
+   integer :: black_i ! Number of iterations trying to escape the black hole
+   real(pr) :: stepx ! Maximum changing logK
+
+   ! Phase envelope points
    type(env3), intent(in out) :: this_envelope
    real(pr) :: tmp_logk(max_points, n)
    real(pr) :: tmp_logks(max_points, n)
@@ -1189,6 +1194,7 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
 
       do while (maxval(abs(delX)) > 1.d-5 .and. iter <= max_iter)
          iter = iter + 1
+
          ! nc,MTYP,INDIC,T,P,rn,V,PHILOG,DLPHI,DLPHIP,DLPHIT,FUGN
          call TERMO(n, iy, 4, T, P, y, Vy, PHILOGy, DLPHIPy, DLPHITy, FUGNy)
          call TERMO(n, ix, 4, T, P, xx, Vx, PHILOGx, DLPHIPx, DLPHITx, FUGNx)
@@ -1293,12 +1299,12 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
       if (iter > max_iter) run = .false.
       if (beta < 0 .or. beta > 1) run = .false.
 
-      if (ichoice == 1 .and. i == 1) KFsep1(1:n) = KFsep
-
+      if (ichoice == 1 .and. i == 1) then
+         KFsep1(1:n) = KFsep
+      end if
 
       ! write (2, 1) T, P, beta, X(1), X(n), X(n + 1), X(2*n), ns, iter
-
-      if (Comp3ph) write (3, 3) T, P, beta, xx(i1), xx(i2), y(i1), y(i2), w(i1), w(i2)
+      ! if (Comp3ph) write (3, 3) T, P, beta, xx(i1), xx(i2), y(i1), y(i2), w(i1), w(i2)
 
       Tv(i) = T
       Pv(i) = P
@@ -1306,7 +1312,10 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
       rho_x = 1/Vx
       rho_y = 1/Vy    ! incipient phase density
 
-      if (sum(X(:n)*Xold(:n)) < 0) then  ! critical point detected between x and y phases
+      ! ========================================================================
+      ! Reasign phases after a critical point
+      if (sum(X(:n)*Xold(:n)) < 0) then  
+         ! critical point detected between x and y phases
          ncri = ncri + 1
          icri(ncri) = i - 1
          frac = -Xold(ns)/(X(ns) - Xold(ns))
@@ -1314,10 +1323,11 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
          Pcri(ncri) = Pv(i - 1) + frac*(P - Pv(i - 1))
          Dcri(ncri) = Dv(i - 1) + frac*(Dv(i) - Dv(i - 1))
          iy = -iy
-         ix = -ix
+         !ix = -ix
       end if
 
-      if (sum(X(n + 1:2*n)*Xold(n + 1:2*n)) < 0) then  ! critical point detected between x and w phases
+      if (sum(X(n + 1:2*n)*Xold(n + 1:2*n)) < 0) then  
+         ! critical point detected between x and w phases
          ncri = ncri + 1
          icri(ncri) = i - 1
          frac = -Xold(ns)/(X(ns) - Xold(ns))
@@ -1327,6 +1337,7 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
          iw = -iw
          ix = -ix
       end if
+      ! ========================================================================
 
       if (run) then
          ! Calculation of sensitivities (dXdS)
