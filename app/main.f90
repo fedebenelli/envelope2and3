@@ -186,8 +186,9 @@ end program
 
 subroutine readcase(n, three_phase)
    use constants
-   use system, only: z
-   use dtypes, only: envelope, kfcross, cross, print_header, env3, find_cross
+   use system, only: z, nmodel => thermo_model, tc, pc, dceos => dc, omg => w, &
+                     ac, b, delta1 => del1, rk_or_m => k, kij_or_k0 => kij, &
+                     ntdep => tdep, ncomb => mixing_rule, bij, kinf, tstar, lij
 
    implicit real(pr)(A - H, O - Z)
 
@@ -694,17 +695,18 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
                      Kij_or_K0n, Tstarn, Lijn, n_points, Tv, Pv, Dv, ncri, icri, Tcri, Pcri, Dcri, &
                      this_envelope)
    use constants
-   use dtypes, only: envelope
+   use system, only: nc, nmodel => thermo_model, &
+                     tc, pc, dceos => dc, omg => w, &
+                     ac, b, delta1 => del1, rk_or_m => k, &
+                     kij_or_k0 => kij, ntdep => tdep, ncomb => mixing_rule, bij,&
+                     kinf, tstar, lij
 
    implicit real(pr)(A - H, O - Z)
-   parameter(nco=64)
 
    ! M&M means the book by Michelsen and Mollerup, 2nd Edition (2007)
 
    ! eos id, number of compounds in the system and starting point type
    integer, intent(in) :: model, n, ichoice
-
-   real(pr) Kinf
 
    ! estimated T and P for first point (then used for every point)
    real(pr) :: T, P
@@ -787,28 +789,7 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
    Told2 = 0.0
    Told = 10.0
    maxP = 0.d0
-   ! Charging the commons(nco) from input arguments (n)
-   NMODEL = model
-   TC(:n) = tcn
-   PC(:n) = pcn
-   OMG(:n) = omgn
-   ac(:n) = acn
-   b(:n) = bn
-   delta1(:n) = delta1n
-   rk_or_m(:n) = k_or_mn
-   Kij_or_K0(:n, :n) = Kij_or_K0n
-   Kinf = 0.0d0
-   ncomb = 0  ! only  vdW combining rules and quadratic mixing rules by  the moment
-   Tstar(:n, :n) = Tstarn
 
-   ! b matrix for Classical or van der Waals combining rules:
-   do i = 1, n
-      do j = i, n
-         bij(i, j) = (1 - lijn(i, j))*(b(i) + b(j))/2
-         bij(j, i) = bij(i, j)
-      end do
-   end do
-   !
    !-----------------------------------------------------------
    ! Continuation method for tracing the envelope starts here
    run = .true.
@@ -1048,11 +1029,18 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
    !   ichoice=3 is used for cases where the initial saturated phase "xx" is the vapor (e.g. OilB with water from Lindeloff-Michelsen).
    !   y and w will correspond to the two liquid phases, with a beta fraction for w.
    use constants
-   use dtypes, only: env3
-   implicit real(pr)(A - H, O - Z)
-   parameter(nco=64)
-   integer, parameter :: max_points=800
+   use system, only: & 
+                     nmodel => thermo_model, ncomb => mixing_rule, ntdep => tdep, &
+                     ac, b, delta1 => del1, rk_or_m => k, &
+                     tc, pc, dceos => dc, omg => w, &
+                     kij_or_k0 => kij, lij, bij
+   implicit none
+
+   integer, parameter :: max_points=800 !! Max number of points
    integer :: n_phases = 3 !! Number of phases
+   
+   common/lowTKsep/KFsep1     !shared with envelope3
+   real(pr) :: KFsep1(64)
 
    ! M&M means the book by Michelsen and Mollerup, 2nd Edition (2007)
 
@@ -1129,19 +1117,6 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
 
    character(len=:), allocatable :: incipient_phase
 
-   common/CRIT/TC(nco), PC(nco), DCeos(nco), omg(nco)
-   common/COMPONENTS/ac(nco), b(nco), delta1(nco), rk_or_m(nco), Kij_or_K0, NTDEP
-   common/MODEL/NMODEL
-   common/rule/ncomb
-   common/bcross/bij(nco, nco)
-   common/Tdep/Kinf, Tstar
-   common/lowTKsep/KFsep1
-   common/writeComp/Comp3ph, i1, i2
-
-   ! common /DewCurve/ ilastDewC, TdewC(500), PdewC(500)     ! crossing vars
-   ! common /CrossingPoints/ Tcr1,Pcr1,Tcr2,Pcr2,KFcr1,Kscr1,KFcr2,Kscr2
-
-
    select case(ichoice)
       case (1)
          incipient_phase = "Vapor"
@@ -1151,20 +1126,6 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
          incipient_phase = "Saturated vapor"
    end select
    print *, "Running: ", incipient_phase
-
-   ! Charging the commons(nco) from input arguments (n)
-   NMODEL = model
-   TC(:n) = tcn
-   PC(:n) = pcn
-   OMG(:n) = omgn
-   ac(:n) = acn
-   b(:n) = bn
-   delta1(:n) = delta1n
-   rk_or_m(:n) = k_or_mn
-   Kij_or_K0(:n, :n) = Kij_or_K0n
-   Kinf = 0.0d0
-   ncomb = 0  ! only  vdW combining rules and quadratic mixing rules by  the moment
-   Tstar(:n, :n) = Tstarn
 
    ! b matrix for Classical or van der Waals combining rules:
    do i = 1, n
