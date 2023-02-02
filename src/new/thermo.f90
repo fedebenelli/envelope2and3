@@ -3,7 +3,6 @@ module system
    ! this should be later adapted into a simple oop system where an eos object
    ! stores the relevant parameters
    use constants, only: pr, R
-   use thermo_io, only: CubicSystem, read_system, size
    implicit none
 
    ! Model settings
@@ -33,7 +32,9 @@ module system
    real(pr), allocatable :: kinf(:, :), tstar(:, :)
    real(pr), allocatable :: bij(:, :)
 
+
 contains
+
 
    subroutine setup(n, nmodel, ntdep, ncomb)
       integer, intent(in) :: n
@@ -64,6 +65,7 @@ contains
       ! allocate(daijdt2(n, n))
       allocate(bij(n, n))
    end subroutine setup
+
 
    subroutine PR78_factory(moles_in, ac_in, b_in, tc_in, pc_in, w_in, k_in)
         !! PengRobinson 78 factory
@@ -126,6 +128,7 @@ contains
         end if
    end subroutine
 
+
    subroutine PR76_factory(moles_in, ac_in, b_in, tc_in, pc_in, w_in, k_in)
       !! PengRobinson 76 factory
       real(pr), intent(in) :: moles_in(nc)
@@ -181,6 +184,7 @@ contains
       end if
    end subroutine
 
+
    subroutine SRK_factory(moles_in, ac_in, b_in, tc_in, pc_in, w_in, k_in)
         !! SoaveRedlichKwong factory
         real(pr), intent(in) :: moles_in(nc)
@@ -233,6 +237,7 @@ contains
         end if
    end subroutine
 
+
    subroutine get_Zc_OMa_OMb(del1, Zc, OMa, OMb)
       !! Calculate Zc, OMa and OMb from the delta_1 parameter.
       real(pr), intent(in)  :: del1(:) !! delta_1 parameter
@@ -249,28 +254,5 @@ contains
       Zc = y/(3._pr*y + d1 - 1.0_pr)
    end subroutine get_Zc_OMa_OMb
 
-   subroutine setup_from_toml(toml_file)
-      character(len=*), intent(in) :: toml_file
 
-      type(CubicSystem) :: thermo_system
-
-      call read_system(toml_file, thermo_system)
-
-      associate(sys => thermo_system)
-      select case (thermo_system%thermo_model)
-      case ("SoaveRedlichKwong")
-         call setup(size(sys%z), 1, 0, 0)
-         call SRK_factory(& 
-            moles_in=sys%z, tc_in=sys%tc, pc_in=sys%pc, w_in=sys%w &
-            ) 
-
-      case ("PengRobinson76")
-         call setup(size(sys%z), 2, 0, 0)
-         call PR76_factory(& 
-            moles_in=sys%z, tc_in=sys%tc, pc_in=sys%pc, w_in=sys%w &
-            ) 
-      case ("RKPR")
-      end select
-      end associate
-   end subroutine
 end module system
