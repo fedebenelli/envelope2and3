@@ -9,6 +9,7 @@ import pandas as pd
 
 
 OUTDIR = "env23out/"
+LOG = False
 
 
 def list_outfiles():
@@ -55,8 +56,8 @@ def clean_dew(df_dew, dsps):
         df_dew[i:j] = np.nan
 
     elif len(crossing_index) == 1:
-        print(crossing_index)
-        df_dew[crossing_index[0] :] = np.nan
+        if LOG: print(crossing_index)
+        df_dew[crossing_index[0]:] = np.nan
 
     return df_dew
 
@@ -119,7 +120,7 @@ def set_composition(infile, index=None, value=None, z=None):
         z = np.array(lines[1].split(), dtype="float64")
         z[index] = value
         z = z / z.sum()
-    elif z:
+    elif z is not None:
         pass
     else:
         z = np.array(lines[1].split(), dtype="float64")
@@ -143,7 +144,7 @@ def run(infile, three_phase="yes", **kwargs):
         f" -- {infile} {three_phase}"
         f" > env23log 2> env23err; wait"
     )
-    print(run_string)
+    if LOG: print(run_string)
     os.system(run_string)
 
 
@@ -174,7 +175,7 @@ def show(df, index, prop, **kwargs):
 def get_case():
     outfiles = list_outfiles()
     long_string = " ".join(outfiles)
-    print(long_string)
+    if LOG: print(long_string)
 
     three_phase = True if "envelout3" in long_string else False
     high_pressure_liquid = True if "HPLL" in long_string else False
@@ -285,7 +286,7 @@ def plot_dsp(stable=True, **kwargs):
 
 def plot(stable=True, **kwargs):
     prim, dsp, three_phase = get_case()
-    print("Case: ", prim, dsp, three_phase)
+    if LOG: print("Case: ", prim, dsp, three_phase)
 
     if three_phase:
         if dsp:
