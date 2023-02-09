@@ -1204,9 +1204,10 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
       ns = 2*n + 3
       S = 0.00   ! for beta
       delS = 0.001
-   else ! start from low T "bubble" point or low T "Lower AOP"
-      ns = 2*n + 1
-      S = X(2*n + 1)   ! for log(T)
+   else 
+      ! start from low T "bubble" point or low T "Lower AOP"
+      ns = 2*n + 2 ! ln(P) specification
+      S = X(ns)
       delS = 0.001
    end if
 
