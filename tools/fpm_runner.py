@@ -138,6 +138,9 @@ def set_composition(infile, index=None, value=None, z=None):
 
 
 def run(infile, three_phase="yes", **kwargs):
+    for file in glob(OUTDIR + "*"):
+        os.remove(file)
+
     extra_args = " ".join([f"--{kwarg} {kwargs[kwarg]}" for kwarg in kwargs])
     run_string = (
         f"fpm run {extra_args}"
@@ -252,8 +255,8 @@ def plot_nodsp(stable=False):
     show(df_dew, index, prop, label="dew", color="blue")
     show(df_bub, index, prop, label="bub", color="black")
 
-    show(df_31, index, prop)
-    show(df_32, index, prop)
+    show(df_31, index, prop, ls="--")
+    show(df_32, index, prop, ls="--")
 
 
 def plot_dsp(stable=True, **kwargs):
