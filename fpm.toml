@@ -2,7 +2,7 @@ name = "Envelope2and3phases"
 version = "0.1.0"
 license = "license"
 author = "Federico E. Benelli"
-maintainer = "fedebenelli@outlook.com"
+maintainer = "federico.benelli@mi.unc.edu.ar"
 copyright = "Copyright 2022, Federico E. Benelli"
 
 [build]
@@ -15,5 +15,7 @@ auto-examples = true
 library = false
 
 [dependencies]
+ftools = { git="https://github.com/fedebenelli/ftools" }
 stdlib = { git="https://github.com/fortran-lang/stdlib", branch="stdlib-fpm" }
-toml-f = { git="https://github.com/toml-f/toml-f" }
+# minpack = { git="https://github.com/fortran-lang/minpack" }
+# toml-f = { git="https://github.com/toml-f/toml-f" }
