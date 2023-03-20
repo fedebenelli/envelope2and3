@@ -5,6 +5,11 @@ module envelopes
    use dtypes, only: envelope
    implicit none
 
+
+   interface F
+      module procedure :: F2
+   end interface
+
 contains
 
    function X2(kfact, P, T) result(X)
@@ -69,18 +74,68 @@ contains
       F(n + 1) = sum(y - z)
       F(n + 2) = X(ns) - S
 
+      ! Jacobian Matrix
       do j=1,n
-         dF(:n, j) = dlnphi_dn_y(:, j) * y(j)
-         dF(j, j) = dF(j, j) + 1
+         df(:n, j) = dlnphi_dn_y(:, j) * y(j)
+         df(j, j) = dF(j, j) + 1
       end do
 
       df(:n, n + 1) = T * (dlnphi_dt_y - dlnphi_dt_x)
       df(:n, n + 2) = P * (dlnphi_dp_y - dlnphi_dp_x)
 
       df(n + 1, :n) = y
+
       df(n + 2, :) = 0
       df(n + 2, ns) = 1
    end subroutine F2
+
+   !subroutine F3(&
+   !      incipient_phase, saturated, incipient, minoritary, X, S, ns, &
+   !      F, dF & 
+   !   )
+   !   character(len=:), allocatable, intent(in) :: incipient_phase
+   !   real(pr), intent(in) :: saturated(nc)
+   !   real(pr), intent(in) :: incipient(nc)
+   !   real(pr), intent(in) :: minoritary(nc)
+
+   !   real(pr), intent(in) :: X(2*nc + 3)
+
+   !   real(pr), intent(in) :: S
+   !   integer, intent(in) :: ns
+
+   !   real(pr), intent(out) :: F(2*nc + 3)
+   !   real(pr), intent(out) :: dF(2*nc + 3, 2*nc + 3)
+
+   !   real(pr) :: Vx, Vy, lnfug_x(nc), lnfug_y(nc)
+
+   !   real(pr) :: dlnphi_dt_x(nc), dlnphi_dt_y(nc)
+   !   real(pr) :: dlnphi_dp_x(nc), dlnphi_dp_y(nc)
+   !   real(pr) :: dlnphi_dn_x(nc, nc), dlnphi_dn_y(nc, nc)
+
+   !   real(pr) :: T, P, beta
+
+   !   integer :: ix, iy, iw, n, j
+
+   !   select case(incipient_phase)
+   !   case ("Vapor")
+   !      iy = -1
+   !   case ("2ndLiquid")
+   !      iw = -1
+   !   case ("MainLiquid")
+   !      ix = -1
+   !   end select
+
+   !   ! nc,MTYP,INDIC,T,P,rn,V,PHILOG,DLPHI,DLPHIP,DLPHIT,FUGN
+   !   call TERMO(n, iy, 4, T, P, y, Vy, PHILOGy, DLPHIPy, DLPHITy, FUGNy)
+   !   call TERMO(n, ix, 4, T, P, xx, Vx, PHILOGx, DLPHIPx, DLPHITx, FUGNx)
+   !   call TERMO(n, iw, 4, T, P, w, Vw, PHILOGw, DLPHIPw, DLPHITw, FUGNw)
+
+   !   F(:n) = X(:n) + PHILOGy - PHILOGx  ! X(:n) are LOG_K
+   !   F(n + 1:2*n) = X(n + 1:2*n) + PHILOGw - PHILOGx  ! X(:n) are LOG_K
+   !   F(2*n + 1) = sum(y - xx)
+   !   F(2*n + 2) = sum(w - xx)
+   !   F(2*n + 3) = X(ns) - S
+   !end subroutine
 
    subroutine update_specification(iter, passingcri, X, dF, ns, S, delS, dXdS)
       integer, intent(in) :: iter
