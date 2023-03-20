@@ -3,27 +3,28 @@ module system
    ! this should be later adapted into a simple oop system where an eos object
    ! stores the relevant parameters
    use constants, only: pr, R
-   use thermo_io, only: CubicSystem, read_system, size
    implicit none
 
    ! Model settings
-   integer :: thermo_model !! Which thermodynamic model
+   integer :: thermo_model !! Which thermodynamic model to use
    integer :: tdep !! Temperature dependance of kij
    integer :: mixing_rule !! What mixing rule to use
    integer :: nc !! Number of components
+   character(len=50), allocatable :: names(:)
 
    ! Mole fracions
    real(pr), allocatable :: z(:)
+   real(pr), allocatable :: moles(:)
 
    ! Critical constants
-   real(pr), allocatable :: tc(:) !! Critical temperature
-   real(pr), allocatable :: pc(:) !! Critical pressure
-   real(pr), allocatable :: dc(:) !! Critical density
+   real(pr), allocatable :: tc(:) !! Critical temperature [K]
+   real(pr), allocatable :: pc(:) !! Critical pressure [bar]
+   real(pr), allocatable :: dc(:) !! Critical density [mol/L]
    real(pr), allocatable :: w(:)  !! Acentric factor
 
    ! Model parameters
-   real(pr), allocatable :: ac(:) !! Critical attractive parameter
-   real(pr), allocatable :: b(:)  !! repulsive parameter
+   real(pr), allocatable :: ac(:) !! Critical attractive parameter [bar (L/mol)^2]
+   real(pr), allocatable :: b(:)  !! repulsive parameter [L]
    real(pr), allocatable :: del1(:) !! $$\delta_1$$ parameter
    real(pr), allocatable :: k(:) !! Attractive parameter constant
    real(pr), allocatable :: kij(:, :) !! Attractive BIP
@@ -41,12 +42,15 @@ contains
       integer, intent(in) :: ntdep
       integer, intent(in) :: ncomb
 
+      integer :: stat
+
       thermo_model = nmodel
       tdep = ntdep
       mixing_rule = ncomb
       nc = n
 
-      ! allocate(z(n))
+      allocate(names(n))
+      allocate(z(n), stat=stat)
       allocate(tc(n))
       allocate(pc(n))
       allocate(dc(n))
@@ -64,6 +68,24 @@ contains
       ! allocate(daijdt2(n, n))
       allocate(bij(n, n))
    end subroutine setup
+
+   subroutine destroy()
+      deallocate(names)
+      deallocate(z)
+      deallocate(tc)
+      deallocate(pc)
+      deallocate(dc)
+      deallocate(w)
+      deallocate(ac)
+      deallocate(b)
+      deallocate(del1)
+      deallocate(k)
+      deallocate(kij)
+      deallocate(lij)
+      deallocate(kinf)
+      deallocate(tstar)
+      deallocate(bij)
+   end subroutine
 
    subroutine PR78_factory(moles_in, ac_in, b_in, tc_in, pc_in, w_in, k_in)
         !! PengRobinson 78 factory
@@ -248,6 +270,8 @@ contains
       OMb = 1._pr/(3._pr*y + d1 - 1.0_pr)
       Zc = y/(3._pr*y + d1 - 1.0_pr)
    end subroutine get_Zc_OMa_OMb
+
+end module system
 
 module thermo
    use constants, only: pr, R
