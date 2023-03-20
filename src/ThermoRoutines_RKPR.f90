@@ -617,7 +617,7 @@ recursive subroutine VCALC(ITYP, nc, NTEMP, rn, T, P, V)
    DEL = 1
    pcalc = 2*p
 
-   do while(abs(DEL) > 1d-10)
+   do while(abs(DEL) > 1d-10 .and. iter < 100)
       V = CPV/ZETA
       ITER = ITER + 1
       call ArVnder(&
