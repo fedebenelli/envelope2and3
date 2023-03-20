@@ -719,7 +719,15 @@ subroutine readcase(n, three_phase)
    ! should be revised
    if (abs(Tcr2) > 1d-5) then
       print *, "second cross", Tcr2, Pcr2
-      ichoice = 1
+      ! Check if the DSP is after the two-phase bubble line critical point
+      ! if it is, initialize as a incipient liquid line
+      if (allocated(dew_envelope%critical_points) .and. &
+         (Tcr2 > dew_envelope%critical_points(1)%t)) then
+         ichoice = 3
+      else
+         ichoice = 1
+      end if
+         
       T = Tcr2
       P = Pcr2
       beta = 0.0d0
