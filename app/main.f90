@@ -1172,17 +1172,15 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
                      nmodel => thermo_model, ncomb => mixing_rule, ntdep => tdep, &
                      ac, b, delta1 => del1, rk_or_m => k, &
                      tc, pc, dceos => dc, omg => w, &
-                     kij_or_k0 => kij, lij, bij
+                     kij_or_k0 => kij, lij, bij, moles
    use linalg, only: solve_system
+   use io, only: str
+   use thermo, only: pressure
+
    implicit none
 
    integer, parameter :: max_points=800 !! Max number of points
-   integer :: n_phases = 3 !! Number of phases
-   
-   common/lowTKsep/KFsep1     !shared with envelope3
-   real(pr) :: KFsep1(64)
-
-   ! M&M means the book by Michelsen and Mollerup, 2nd Edition (2007)
+   integer, parameter :: max_iter=500   !! Max number of iterations per Newton step
 
    ! eos id, number of compounds in the system and starting point type
    integer, intent(in) :: model, n, ichoice
