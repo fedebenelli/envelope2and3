@@ -523,14 +523,28 @@ subroutine readcase(n, three_phase)
          ! Find cross between high P LL and bubble
          call find_cross(high_p_envelope%t, low_t_envelope%t, &
                          high_p_envelope%p, low_t_envelope%p, crossings)
-         Tcr1 = crossings(1)%x
-         Pcr1 = crossings(1)%y
-         icross = crossings(1)%i
-         jcross = crossings(1)%j
+         
+         if (size(crossings) < 1) then
+            call find_cross(high_p_envelope%t, dew_envelope%t, &
+                            high_p_envelope%p, dew_envelope%p, crossings)
+            Tcr1 = crossings(1)%x
+            Pcr1 = crossings(1)%y
+            icross = crossings(1)%i
+            jcross = crossings(1)%j
 
-         ! New Kfactors interpolated for the Left cross
-         kfcr1 = kfcross(jcross, low_t_envelope%t, low_t_envelope%logk, Tcr1)
-         kscr1 = kfcross(icross, high_p_envelope%t, high_p_envelope%logk, Tcr1)
+            ! New Kfactors interpolated for the Left cross
+            kfcr1 = kfcross(jcross, dew_envelope%t, dew_envelope%logk, Tcr1)
+            kscr1 = kfcross(icross, high_p_envelope%t, high_p_envelope%logk, Tcr1)
+         else
+            Tcr1 = crossings(1)%x
+            Pcr1 = crossings(1)%y
+            icross = crossings(1)%i
+            jcross = crossings(1)%j
+
+            ! New Kfactors interpolated for the Left cross
+            kfcr1 = kfcross(jcross, low_t_envelope%t, low_t_envelope%logk, Tcr1)
+            kscr1 = kfcross(icross, high_p_envelope%t, high_p_envelope%logk, Tcr1)
+         end if
 
          if (Tcr2 < 1) then
             ! Find cross between dew and bubble
