@@ -1070,6 +1070,23 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
             end if
          end do
 
+         ! Extrapolate lnK ten degrees to detect CP
+         if (i > 10) then
+            extra_slope = (tmp_logk(i, :n) - tmp_logk(i-1, :n))/(Tv(i) - Tv(i-1))
+
+            ! Delta T has the same sign as the temperature step
+            delta_t = sign(10.0_pr, Tv(i) - Tv(i - 1))
+            lnK_extrapolated = (delta_t) * extra_slope + X(:n)
+
+            if (all((X(:n) * lnK_extrapolated < 0), dim=1)) then
+               stepX = maxval(abs(X(:n) - Xold(:n))) 
+               S = S + abs(delta_t/t) * delS
+               X = X + abs(delta_t/t) * dXdS * delS
+               passingcri = .true.
+               print *, "aproaching crit", sum(X(:n) * Xold(:n)) < 0
+            end if
+         end if
+
          T = exp(X(n + 1))
 
          if (.not. passingcri .and. abs(T - Told) > 7) then 
