@@ -198,7 +198,6 @@ contains
    end subroutine dFdS
 end module envelopes
 
-
 program calc_envelope2and3
    use constants
    use io_nml, only: setup_input, read_system
@@ -324,20 +323,12 @@ subroutine readcase(n, three_phase)
 
    type(point), allocatable :: crossings(:)
 
-   character*4 :: spec
-   logical FIRST
-
-   ! common /DewCurve/ ilastDewC, TdewC(800), PdewC(800), dewK(800, nco)
-   ! common /lowTbub/ TlowT, PlowT, KlowT, PHILOGxlowT !shared with envelope2
-
-   ! common/CrossingPoints/Tcr1, Pcr1, Tcr2, Pcr2, KFcr1, Kscr1, KFcr2, Kscr2
-   common/lowTKsep/KFsep1     !shared with envelope3
-   real(pr) :: KFsep1(64)
+   character(len=4) :: spec
+   logical :: FIRST
 
    type(envelope) :: dew_envelope, low_t_envelope, high_p_envelope
    type(env3) :: triphasic
    logical :: highPLL_converged
-   logical, allocatable ::  msk(:)
 
    interface
    subroutine find_self_cross(array_x, array_y, found_cross)
@@ -352,18 +343,6 @@ subroutine readcase(n, three_phase)
 
    Tcr1 = 0.d0 ! T of 1st crossing point detected between different envelope segments
    Tcr2 = 0.d0
-
-   allocate(z(n))
-   read (1, *) (z(j), j=1, N)
-   read (1, *) nmodel
-   if (nmodel < 3) then
-      call read2PcubicNC(N, 1, 2)
-   else if (nmodel == 3) then
-      call readRKPRNC(N, 1, 2)
-   end if
-   write (2, *)
-   write (2, 4) (z(i), i=1, n)
-4  format('Molar fractions: ', 20F7.4)
 
    ! Passing values from commons(nco) to input arguments (n)
    TCn = tc(:n)
