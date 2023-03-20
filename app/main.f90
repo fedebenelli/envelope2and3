@@ -810,6 +810,7 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
                      kij_or_k0 => kij, ntdep => tdep, ncomb => mixing_rule, bij,&
                      kinf, tstar, lij
    use linalg, only: solve_system
+   use envelopes, only: F2, X2, update_specification
 
    implicit real(pr)(A - H, O - Z)
 
@@ -878,6 +879,7 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
    common /CrossingPoints/ Tcr1, Pcr1, Tcr2, Pcr2, KFcr1, Kscr1, KFcr2, Kscr2
    common /lowTbub/ TlowT, PlowT, KlowT, PHILOGxlowT
 
+   character(len=:), allocatable :: incipient_phase
    real(pr) :: tmp_logk(800, n)
    real(pr) :: tmp_logphi(800, n)
    type(envelope) :: this_envelope
@@ -888,6 +890,7 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
 
    minT = .false.
    minmaxT = .false.
+   passingcri = .false.
    Told2 = 0.0
    Told = 10.0
    maxP = 0.d0
