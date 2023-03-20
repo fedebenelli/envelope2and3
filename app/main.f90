@@ -972,13 +972,13 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
          X = X + delX
 
          if (.not. passingcri .and. i /= 1 &
-             .and. iter > 20 &
+             .and. iter > 10 &
              .and. maxval(abs(delX)) > 0.001) then 
             ! Too many iterations-->Reduce step to new point
 
-            !delS = delS*3.0/4.0
-            !S = S - delS
-            !X = Xold + dXdS*delS
+            delS = delS*2.0/4.0
+            S = S - delS
+            X = Xold + dXdS*delS
          end if
 
          KFACT = exp(X(:n))
