@@ -1630,38 +1630,7 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
    ! print *, rho_x
    ! print *, rho_y
    ! print *, beta
-1  format(7F10.4, 2I4)
-3  format(3F10.4, 6E12.3)
 end subroutine envelope3
-
-subroutine EvalFEnvel3(n, z, X, F)
-   use constants
-
-   implicit real(pr)(A - H, O - Z)
-   real(pr), dimension(n) :: KFACT, KFsep
-   real(pr), dimension(n) :: z, y, xx, w, PHILOGy, PHILOGx, PHILOGw
-   real(pr), dimension(n) :: DLPHITx, DLPHIPx, DLPHITy, DLPHIPy, DLPHITw, DLPHIPw
-   real(pr), dimension(n, n) :: FUGNx, FUGNy, FUGNw
-   real(pr), dimension(2*n + 3) :: X, F
-
-   S = 0.001
-   KFACT = exp(X(:n))
-   KFsep = exp(X(n + 1:2*n))
-   T = exp(X(2*n + 1))
-   P = exp(X(2*n + 2))
-   beta = X(2*n + 3)
-   xx = z/(1 - beta + beta*KFsep)
-   y = KFACT*xx
-   w = KFsep*xx
-   call TERMO(n, 1, 4, T, P, y, Vy, PHILOGy, DLPHIPy, DLPHITy, FUGNy)
-   call TERMO(n, -1, 4, T, P, xx, Vx, PHILOGx, DLPHIPx, DLPHITx, FUGNx)
-   call TERMO(n, 1, 4, T, P, w, Vw, PHILOGw, DLPHIPw, DLPHITw, FUGNw)
-   F(:n) = X(:n) + PHILOGy - PHILOGx  ! X(:n) are LOG_K
-   F(n + 1:2*n) = X(n + 1:2*n) + PHILOGw - PHILOGx  ! X(:n) are LOG_K
-   F(2*n + 1) = sum(y - xx)
-   F(2*n + 2) = sum(w - xx)
-   F(2*n + 3) = X(25) - S
-end subroutine EvalFEnvel3
 
 subroutine find_self_cross(array_x, array_y, found_cross)
    use constants, only: pr
