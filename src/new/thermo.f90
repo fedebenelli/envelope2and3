@@ -249,28 +249,29 @@ contains
       Zc = y/(3._pr*y + d1 - 1.0_pr)
    end subroutine get_Zc_OMa_OMb
 
-   subroutine setup_from_toml(toml_file)
-      character(len=*), intent(in) :: toml_file
+module thermo
+   use constants, only: pr, R
+   use system
 
-      type(CubicSystem) :: thermo_system
+contains
 
-      call read_system(toml_file, thermo_system)
+   subroutine pressure(v, t, p)
+      real(pr), intent(in) :: v(:), t
+      real(pr), intent(out) :: p(size(v))
 
-      associate(sys => thermo_system)
-      select case (thermo_system%thermo_model)
-      case ("SoaveRedlichKwong")
-         call setup(size(sys%z), 1, 0, 0)
-         call SRK_factory(& 
-            moles_in=sys%z, tc_in=sys%tc, pc_in=sys%pc, w_in=sys%w &
-            ) 
+      real(pr) :: tmp, ArV, tmpn(nc), tmpn2(nc, nc)
 
-      case ("PengRobinson76")
-         call setup(size(sys%z), 2, 0, 0)
-         call PR76_factory(& 
-            moles_in=sys%z, tc_in=sys%tc, pc_in=sys%pc, w_in=sys%w &
-            ) 
-      case ("RKPR")
-      end select
-      end associate
-   end subroutine
-end module system
+      integer :: i
+
+      do i=1, size(v)
+      call ArVnder(&
+         nc, 0, 0, moles, V(i), T, tmp, ArV, &
+         tmp, tmp, tmpn, tmpn, tmpn, tmpn2 &
+      )
+
+      p(i) = R*T/V(i) - ArV
+
+      end do
+
+   end subroutine pressure
+end module thermo
