@@ -385,8 +385,9 @@ subroutine readcase(n, three_phase)
    ilastDewC = n_points
 
    call find_self_cross(dew_envelope%t, dew_envelope%p, crossings)
-   if (size(crossings) > 0) then  ! self crossing detected (usual in some asymmetric hc mixtures)
-      
+   if (size(crossings) > 0) then  
+      ! self crossing detected (usual in some asymmetric hc mixtures)
+
       ! Self Cross found
       Tcr2 = crossings(1)%x
       Pcr2 = crossings(1)%y
@@ -395,7 +396,11 @@ subroutine readcase(n, three_phase)
       kfcr2 = kfcross( &
          crossings(1)%i, dew_envelope%t, dew_envelope%logk, Tcr2 &
       )
-      kscr2 = kfcr2
+
+      kscr2 = kfcross( &
+         crossings(1)%j, dew_envelope%t, dew_envelope%logk, Tcr2 &
+      )
+
    end if
 
    if (P > Pmax) then  ! now run from Low T Bubble point
@@ -504,7 +509,7 @@ subroutine readcase(n, three_phase)
          ichoice = 1   ! now run from Low T Bubble point, after isolated LL saturation curve
          P = 11.0
          T = 205.0
-         do while (P > 10) ! > 10
+         do while (P > 10) ! > 10, temporary was 7 for some reason
             T = T - 5.D0
             P = sum(z*PCn*exp(5.373*(1 + omgn)*(1 - TCn/T)))
          end do
@@ -1602,6 +1607,9 @@ subroutine find_self_cross(array_x, array_y, found_cross)
    use constants, only: pr
    use array_operations, only: diff, mask
    use dtypes, only: point, find_cross
+
+   implicit none
+
    real(pr), intent(in) :: array_x(:)
    real(pr), intent(in) :: array_y(size(array_x))
    type(point), allocatable, intent(in out) :: found_cross(:)
@@ -1610,14 +1618,16 @@ subroutine find_self_cross(array_x, array_y, found_cross)
    integer, allocatable :: msk(:)
    real(pr) :: min_x, max_x
 
-   integer :: i
+   integer :: i, idx, idy
 
+
+   ! All the values with positive delta 
    filter = diff(array_x) > 0
 
    i = 1
    do while(filter(i))
       ! Find the first ocurrence of a negative delta x
-      ! This will give the index of the nearest to cricondenterm value
+      ! This will give the index of the cricondentherm
       i = i + 1
    end do
 
@@ -1625,6 +1635,7 @@ subroutine find_self_cross(array_x, array_y, found_cross)
    max_x = maxval(array_x(msk))
    min_x = minval(array_x(msk))
 
+   ! 
    filter = array_x <= max_x - 5 .and. array_x >= min_x - 5 .and. array_y >= 10
    msk = mask(filter)
 
@@ -1632,9 +1643,20 @@ subroutine find_self_cross(array_x, array_y, found_cross)
       array_x(msk), array_x(msk), array_y(msk), array_y(msk), found_cross &
    )
 
-   if (size(found_cross) > 0) then
-      ! TODO: This assumes there is only one self-cross, should be better defined
-      idx = minloc(abs(array_y - found_cross(1)%y), dim=1)
-      found_cross(1)%i = idx
+   if (size(found_cross) > 1) then
+      found_cross%i = found_cross%i + msk(1)
+      found_cross%j = found_cross%j + msk(1)
    end if
+
+
+   ! if (size(found_cross) > 0) then
+   !    do i=1,size(found_cross)
+   !       ! TODO: This assumes there is only one self-cross, should be better defined
+   !       idx = minloc(abs(array_x - found_cross(i)%x), dim=1)
+   !       idy = minloc(abs(array_y - found_cross(i)%y), dim=1)
+
+   !       found_cross(i)%i = idx
+   !       found_cross(i)%j = idy
+   !    end do
+   ! end if
 end subroutine find_self_cross
