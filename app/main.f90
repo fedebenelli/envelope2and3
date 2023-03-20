@@ -1278,7 +1278,19 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
    real(pr) :: tmp_beta(max_points)
    type(critical_point), allocatable :: ll_critical_points(:), critical_points(:)
 
+   integer :: nunit, tmp_i
+
    character(len=:), allocatable :: incipient_phase
+
+   real(pr) :: isot_v(5000), &
+               isot_pz(5000), &
+               isot_pxx(5000), &
+               isot_py(5000), &
+               isot_pw(5000)
+
+   ix = 1
+   iy = 1
+   iw = 1
 
    select case(ichoice)
       case (1)
@@ -1625,6 +1637,48 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
    this_envelope%y = tmp_y(:n_points, :)
    this_envelope%w = tmp_w(:n_points, :)
    this_envelope%beta = tmp_beta
+
+   allocate(critical_points(ncri))
+   critical_points%t = tcri(:ncri)
+   critical_points%p = pcri(:ncri)
+   this_envelope%critical_points = critical_points
+
+
+   ! t = 653
+   ! p =  180
+
+   ! j = findloc(&
+   !       abs(tv - t) - 1 < 1 .and. abs(pv - p) - 1 < 1, .true., dim=1 &
+   !    )
+
+   ! j = n_points
+
+   ! print *, j, tv(j), pv(j)
+
+   ! t = tv(j)
+
+   ! open(newunit=nunit, file="isots")
+   ! write(nunit, *) "v pz px py pw"
+
+   ! do i=1,size(isot_v)
+   !    isot_v(i) = real(i, pr)/500
+   ! end do
+
+   ! moles = z
+   ! call pressure(isot_v, t, isot_pz)
+   ! moles = this_envelope%x(j, :)
+   ! call pressure(isot_v, t, isot_pxx)
+   ! moles = this_envelope%y(j, :)
+   ! call pressure(isot_v, t, isot_py)
+   ! moles = this_envelope%w(j, :)
+   ! call pressure(isot_v, t, isot_pw)
+
+   ! do i=1,size(isot_v)
+   !    write(nunit, *) isot_v(i), isot_pz(i), isot_pxx(i), isot_py(i), isot_pw(i)
+   ! end do
+
+   ! close(nunit)
+
 
    ! print *, y
    ! print *, rho_x
