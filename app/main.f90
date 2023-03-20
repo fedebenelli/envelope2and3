@@ -664,8 +664,11 @@ subroutine readcase(n, three_phase)
       end if
 
       do while (abs(dif) > 0.1)
-         call flash(spec, FIRST, nmodel, n, z, tcn, pcn, omgn, acn, bn, k_or_mn, delta1n, &
-                    Kij_or_K0n, Tstarn, Lijn, t, p, v, xx, w, rho_x, rho_y, beta, iter)
+         call flash(spec, FIRST, &
+            nmodel, n, z, tcn, pcn, omgn, acn, bn, k_or_mn, delta1n, & ! spec
+            Kij_or_K0n, Tstarn, Lijn, & ! spec
+            t, p, v, xx, w, rho_x, rho_y, beta, iter & ! out
+         )
          call TERMO(n, 1, 1, T, P, xx, Vx, PHILOGx, DLPHIPy, DLPHITy, FUGNy)
          call TERMO(n, 1, 1, T, P, y, Vy, PHILOGy, DLPHIPy, DLPHITy, FUGNy)
          dold = dif
