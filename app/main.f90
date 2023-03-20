@@ -674,7 +674,6 @@ subroutine readcase(n, three_phase)
          dold = dif
 
          dif = PHILOGy(n) - (PHILOGx(n) + log(xx(n)))
-
          aux = T
          T = min(Told - dold*(T - Told)/(dif - dold), T + 20.0)
          Told = aux
@@ -829,10 +828,10 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
    real(pr), dimension(n), intent(in) :: omgn
 
    ! eos parameters
-   real(pr), dimension(n), intent(in) :: acn  ! in bar*(L/mol)**2
-   real(pr), dimension(n), intent(in) :: bn   ! in L/mol
-   real(pr), dimension(n), intent(in) :: delta1n  !only required for RKPR
-   real(pr), dimension(n), intent(in) :: k_or_mn  ! k for RKPR ; m for SRK/PR
+   real(pr), dimension(n), intent(in) :: acn ! in bar*(L/mol)**2
+   real(pr), dimension(n), intent(in) :: bn ! in L/mol
+   real(pr), dimension(n), intent(in) :: delta1n ! only required for RKPR
+   real(pr), dimension(n), intent(in) :: k_or_mn ! k for RKPR ; m for SRK/PR
 
    ! interaction parameters matrices
    real(pr), dimension(n, n), intent(in) :: Kij_or_K0n
@@ -1105,6 +1104,20 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
    ! print *, rho_x
    ! print *, rho_y
    ! print *, beta
+
+   contains
+
+      subroutine F_eval(n, x, fvec, fjac,  ldfjac, iflag)
+         integer, intent(in) :: n
+         real(pr), intent(in out) :: x(n)
+         real(pr), intent(in out) :: fvec(n)
+         real(pr), intent(in out) :: fjac(ldfjac, n)
+         integer, intent(in) :: ldfjac
+         integer, intent(in out) :: iflag
+
+         call F2(incipient_phase, z, y, X, S, ns, F, JAC)
+
+      end subroutine F_eval
 end subroutine envelope2
 
 subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, omgn, acn, bn, k_or_mn, delta1n, &
@@ -1207,7 +1220,7 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
    integer :: ix, iy, iw ! Incipient phase?
    integer :: lda, ldb ! Dimension of the system of equations
    integer :: ns ! Number of specification
-   integer :: max_iter, iter ! Number of iterations during full newton
+   integer :: iter ! Number of iterations during full newton
    real(pr) :: rho_x, rho_y ! Phases densities
    real(pr) :: frac ! 
 
@@ -1224,9 +1237,11 @@ subroutine envelope3(ichoice, model, n, z, T, P, beta, KFACT, KFsep, tcn, pcn, o
    ! Critical points related
    integer :: black_i ! Number of iterations trying to escape the black hole
    real(pr) :: stepx ! Maximum changing logK
+   logical :: K_critical, KS_critical
 
    ! Phase envelope points
    type(env3), intent(in out) :: this_envelope
+   real(pr) :: incipient(n), saturated(n), minoritary(n)
    real(pr) :: tmp_logk(max_points, n)
    real(pr) :: tmp_logks(max_points, n)
    real(pr) :: tmp_x(max_points, n)
