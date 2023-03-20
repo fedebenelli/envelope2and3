@@ -201,42 +201,65 @@ end module envelopes
 
 program calc_envelope2and3
    use constants
+   use io_nml, only: setup_input, read_system
+   use system, only: z, nmodel => thermo_model, n => nc
    use io, only: str
-   implicit real(pr)(A - H, O - Z)
-   logical Comp3ph
-   character(len=200) :: infile
-   common/writeComp/Comp3ph, i1, i2
-   real :: start_time, end_time
-   character(len=3) :: three_phase_arg
-   logical :: three_phase
+   
+   implicit none
 
-   call system("rm env23out/envelout*")
+   common/writeComp/Comp3ph, i1, i2
+
+   logical :: Comp3ph = .false.
+
+   ! cli args
+   character(len=254) :: infile
+   character(len=3) :: from_nml
+   character(len=3) :: three_phase_arg
+   
+   logical :: three_phase = .false.
+
+   ! Simple benchmark
+   real :: start_time, end_time
+
+   integer :: i, j
+   integer :: i1, i2
+
+   ! call system("rm env23out/envelout*")
+   from_nml=""
    call get_command_argument(1, infile)
    call get_command_argument(2, three_phase_arg)
+   call get_command_argument(3, from_nml)
 
-   open (1, FILE=infile)! 'envelIN.txt')
    open (2, FILE='envelOUT.txt')
-   read (1, *) N
+   if (from_nml == "yes") then
+      ! NML Based IO
+      call read_system(infile)
+   else
+      ! Modified Legacy IO
+      open (1, FILE=infile)! 'envelIN.txt')
+      read (1, *) N
 
-   !write (6, *) 'write extra output with compositions for 2 compounds along 3-phase lines?'
-   !write (6, *) 'Enter 1 for YES. Otherwise, any other number.'
-   ! read (5, *) i
+      allocate(z(n))
+      read (1, *) (z(j), j=1, N)
+      read (1, *) nmodel
 
-   i = 0
-
-   if (i == 1) Comp3ph = .true.
-   if (Comp3ph) then
-      open (3, FILE='Comp3phOUT.txt')
-      write (6, *) 'Enter order numbers for two selected compounds, separated by space.'
-      read (5, *) i1, i2
-      write (3, *) 'Molar fractions along three-phase boundaries are printed below for compounds with order:', i1, i2
+      if (nmodel < 4) then
+         call read2PcubicNC(N, 1, 2)
+      else if (nmodel == 4) then
+         call readRKPRNC(N, 1, 2)
+      end if
    end if
+
+   write (2, *)
+   write (2, 4) (z(i), i=1, n)
 
    call cpu_time(start_time)
    call readcase(n, three_phase_arg)
    call cpu_time(end_time)
+
    print *, "Finished in " // str(end_time - start_time) // "seconds"
 
+4  format('Molar fractions: ', 20F7.4)
 end program
 
 subroutine readcase(n, three_phase)
