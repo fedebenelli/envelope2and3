@@ -809,7 +809,7 @@ subroutine envelope2(ichoice, model, n, z, T, P, KFACT, tcn, pcn, omgn, acn, bn,
 
       ! rho_y = 1/Vy     incipient phase density
 
-      if (incipient_phase == "2ndliquid" .and. P < 1.0) then
+      if (incipient_phase == "2ndliquid" .and. P < 0.1) then
          ! isolated LL line detected. 
          ! Stop and start a new one from low T false bubble point
          run = .false.   
