@@ -1,10 +1,14 @@
 module envelopes
+   !! Functions to be used in the different continuation methods to trace
+   !! phase envelopes 
    use constants, only: pr
    use linalg, only: solve_system
    use system, only: nc
    use dtypes, only: envelope
    implicit none
 
+   integer, parameter :: max_points = 2000
+   integer :: env_number = 0
 
    interface F
       module procedure :: F2
@@ -180,6 +184,34 @@ contains
       df(n + 2, :) = 0
       df(n + 2, ns) = 1
    end subroutine F2
+
+   subroutine fix_delx(&
+         point, iterations, desired_iterations, first_tol, tol, delX &
+      )
+      integer, intent(in)  :: point
+      integer, intent(in)  :: iterations
+      integer, intent(in)  :: desired_iterations
+      real(pr), intent(in) :: first_tol
+      real(pr), intent(in) :: tol
+      real(pr), intent(in out) :: delX(:)
+
+      if (point == 1) then
+         do while (maxval(abs(delX)) > first_tol) 
+            ! Too large Newton step --> Reduce it
+            delX = delX/2
+         end do
+      else
+         do while (maxval(abs(delX)) > tol)   
+            ! Too large Newton step --> Reduce it
+            delX = delX/2
+         end do
+         if (iterations > desired_iterations)  then
+            ! too many iterations (sometimes due to oscillatory behavior 
+            ! near critical point) --> Reduce it
+            delX = delX/2
+         endif
+      end if
+   end subroutine
    ! ===========================================================================
 
    ! =============================================================================

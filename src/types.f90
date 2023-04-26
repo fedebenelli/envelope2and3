@@ -1,5 +1,5 @@
 module dtypes
-   use constants
+   use constants, only: pr
    use io
 
    implicit none
@@ -11,6 +11,7 @@ module dtypes
    public :: kfcross
    public :: print_header
    public :: find_cross
+   public :: find_self_cross
    public :: critical_point
 
    
@@ -20,6 +21,7 @@ module dtypes
    end type critical_point
 
    type :: envelope
+      real(pr), allocatable :: vars(:, :)  !! Value of the set of variables at each point
       real(pr), allocatable :: z(:) !! Global composition
       real(pr), allocatable :: t(:) !! Temperature points
       real(pr), allocatable :: p(:) !! Pressure points
@@ -49,6 +51,29 @@ module dtypes
    end type point
 
 contains
+
+   subroutine write_critical_points(self, file_name)
+      type(critical_point), intent(in) :: self(:)
+      character(len=*), optional, intent(in) :: file_name !! Ouptut file name
+
+      character(len=:), allocatable :: filename
+      integer :: file_unit
+      integer :: i
+      
+      if (present(file_name)) then
+         filename = file_name
+      else 
+         filename = "CP"
+      end if
+      
+      open(newunit=file_unit, file=filename)
+         write(file_unit, "(A)") "P            T"
+         do i = 1, size(self)
+            write(file_unit, "(2(E10.5,2x))") self(i)%t,  self(i)%p
+         end do
+      close(file_unit)
+
+   end subroutine
    
    subroutine write_envel_2(self, file_name)
       class(envelope), intent(in):: self
@@ -81,14 +106,8 @@ contains
       
       ! Write Critical Points file
       filename = filename // "-CP"
-      open(newunit=file_unit, file=filename)
-         write(file_unit, *) "P ", "T "
-         associate (critical_points => self%critical_points)
-         do i = 1, size(self%critical_points)
-            write(file_unit, *) critical_points(i)%t,  critical_points(i)%p
-         end do
-         end associate
-      close(file_unit)
+
+      call write_critical_points(self%critical_points, filename)
 
       deallocate(filename)
    end subroutine write_envel_2
@@ -129,15 +148,7 @@ contains
       
       ! Write Critical Points file
       filename = filename // "-CP"
-      open(newunit=file_unit, file=filename)
-         write(file_unit, *) "P ", "T "
-         associate (critical_points => self%critical_points)
-         do i = 1, size(self%critical_points)
-            write(file_unit, *) critical_points(i)%t,  critical_points(i)%p
-         end do
-         end associate
-      close(file_unit)
-
+      call write_critical_points(self%critical_points, filename)
       deallocate(filename)
    end subroutine write_envel_3
 
