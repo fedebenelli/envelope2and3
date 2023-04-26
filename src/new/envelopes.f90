@@ -182,4 +182,104 @@ contains
    end subroutine F2
    ! ===========================================================================
 
+   ! =============================================================================
+   !  Crossing related
+   ! -----------------------------------------------------------------------------
+   subroutine find_crossings(&
+         dew, bub, hpl, &
+         Tcr1, Pcr1, Tcr2, Pcr2, &
+         kfcr1, kscr1, kfcr2, kscr2 &
+      )
+      ! Find the crossings between the whole set of two-phase lines
+      use dtypes, only: envelope, kfcross, point, find_cross, find_self_cross
+      implicit none
+
+      type(envelope),        intent(in out) :: dew !! Dew envelope (AOP)
+      type(envelope),        intent(in out) :: bub !! Bubble envelope
+      type(envelope),        intent(in out) :: hpl !! HPLL envelope
+      real(pr),                 intent(out) :: Tcr1, Pcr1, Tcr2, Pcr2
+      real(pr),                 intent(out) :: kfcr1(:), kscr1(:), kfcr2(:), kscr2(:)
+
+      type(point), allocatable :: self_cross(:)
+      type(point), allocatable :: dew_bub_cross(:)
+      type(point), allocatable :: dew_hpl_cross(:)
+      type(point), allocatable :: bub_hpl_cross(:)
+
+      logical :: has_hpll_line
+
+      logical :: crossed_dew_hpl
+      logical :: crossed_bub_hpl
+      logical :: crossed_dew_dew
+      logical :: crossed_dew_bub
+      logical :: crossed_self
+
+      tcr1 = 0
+      tcr2 = 0
+      pcr1 = 0
+      pcr2 = 0
+
+      has_hpll_line = allocated(hpl%t)
+
+      ! ========================================================================
+      !  Find the crossings
+      ! ------------------------------------------------------------------------
+
+      ! First check if the dew_envelope or the low_t_envelope self_cross
+      call find_self_cross(dew%t, dew%p, self_cross, crossed_self)
+
+      ! Then:
+      ! - Check if HPLL line has been traced
+      ! - [Cross dew bub?]|[Cross bub HPLL andor Cross dew HPLL]
+      if (has_hpll_line) then
+         call find_cross(dew%t, hpl%t, dew%p, hpl%p, dew_hpl_cross, crossed_dew_hpl)
+         call find_cross(bub%t, hpl%t, bub%p, hpl%p, bub_hpl_cross, crossed_bub_hpl)
+         call find_cross(dew%t, bub%t, dew%p, bub%p, dew_bub_cross, crossed_dew_bub)
+      else
+         call find_cross(dew%t, bub%t, dew%p, bub%p, dew_bub_cross, crossed_dew_bub)
+      end if
+      ! ========================================================================
+
+      if (has_hpll_line) then
+         if (crossed_bub_hpl .and. crossed_dew_bub) then
+            ! HPLL line crossed with bubble, and bubble crossed with dew
+            call get_values(bub_hpl_cross, 1, bub, hpl, tcr1, pcr1, kfcr1, kscr1)
+            call get_values(dew_bub_cross, 1, bub, dew, tcr2, pcr2, kfcr2, kscr2)
+         else if (crossed_dew_hpl) then
+            ! HPLL line crossed with dew line
+            call get_values(dew_hpl_cross, 1, dew, hpl, tcr2, pcr2, kfcr2, kscr2)
+         end if
+      else
+         if (crossed_dew_bub) then
+            call get_values(dew_bub_cross, 1, bub, dew, tcr2, pcr2, kfcr2, kscr2)
+            call get_values(dew_bub_cross, 2, bub, dew, tcr1, pcr1, kfcr1, kscr1)
+         end if
+      end if
+      
+      if (crossed_self) then
+         call get_values(self_cross, 1, dew, dew, tcr2, pcr2, kfcr2, kscr2)
+      end if
+   contains
+       subroutine get_values(cross, index, envelope1, envelope2, t, p, kf, ks)
+          use dtypes, only: point
+          type(point), allocatable, intent(in) :: cross(:)
+          type(envelope), intent(in) :: envelope1, envelope2
+          integer, intent(in) :: index
+          real(pr), intent(out) :: t
+          real(pr), intent(out) :: p
+          real(pr), intent(out) :: kf(size(kfcr1))
+          real(pr), intent(out) :: ks(size(kscr1))
+
+          integer :: icross, jcross
+
+          icross = cross(index)%i
+          jcross = cross(index)%j
+
+          t = cross(index)%x
+          p = cross(index)%y
+
+          kf = kfcross(jcross, envelope1%t, envelope1%logk, t)
+          ks = kfcross(icross, envelope2%t, envelope2%logk, t)
+       end subroutine
+   end subroutine find_crossings
+   ! ===========================================================================
 end module envelopes

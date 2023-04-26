@@ -165,7 +165,7 @@ contains
       print *, "-----------------------------------"
    end subroutine print_header
    
-   subroutine find_cross(tv1, tv2, pv1, pv2, crossings)
+   subroutine find_cross(tv1, tv2, pv1, pv2, crossings, crossed)
       !! Find crossings between two given lines
       !!
       !! Returns an array of crossigns, containings the crosses found. Each row
@@ -180,6 +180,7 @@ contains
       real(pr), intent(in)  :: tv2(:)  !! Second line x values
       real(pr), intent(in)  :: pv1(:)  !! First line y values
       real(pr), intent(in)  :: pv2(:)  !! Second line y values
+      logical, optional, intent(out) :: crossed
 
       type(point), allocatable :: crossings(:) !! Array of crossings
       type(point) :: current_cross
@@ -189,6 +190,10 @@ contains
       real :: x_cross, y_cross, m1, b1, m2, b2, xlow, xup, ylow, yup
       real, dimension(2) :: xpair_1, xpair_2, ypair_1, ypair_2
       integer :: i, j, n
+
+      if (present(crossed)) then
+         crossed = .false.
+      end if
 
       if (allocated(crossings)) then
          deallocate (crossings)
@@ -233,6 +238,7 @@ contains
                (xlow <= x_cross) .and. (x_cross <= xup) .and. &
                (ylow <= y_cross) .and. (y_cross <= yup) &
                ) then
+               if (present(crossed)) crossed = .true.
                print *, "CROSS:", i, j, x_cross, y_cross
 
                ! TODO: This should get back, but for some reason now
@@ -252,4 +258,65 @@ contains
          end do
       end do
    end subroutine find_cross
+
+   subroutine find_self_cross(array_x, array_y, found_cross, crossed)
+      use constants, only: pr
+      use array_operations, only: diff, mask
+
+      real(pr), intent(in) :: array_x(:)
+      real(pr), intent(in) :: array_y(size(array_x))
+      type(point), allocatable, intent(in out) :: found_cross(:)
+      logical, optional, intent(out) :: crossed
+
+      logical, allocatable :: filter(:)
+      integer, allocatable :: msk(:)
+      real(pr) :: min_x, max_x
+
+      integer :: i, idx, idy
+
+      if(present(crossed)) crossed = .false.
+
+      ! All the values with positive delta 
+      filter = diff(array_x) > 0
+
+      return
+
+      i = 1
+      do while(filter(i))
+         ! Find the first ocurrence of a negative delta x
+         ! This will give the index of the cricondentherm
+         i = i + 1
+      end do
+
+      ! if (i < size(array_x)) then
+      !    msk = mask(filter(i:)) + i
+      !    max_x = maxval(array_x(msk))
+      !    min_x = minval(array_x(msk))
+
+      !    ! 
+      !    filter = array_x <= max_x - 5 .and. array_x >= min_x - 5 .and. array_y >= 10
+      !    msk = mask(filter)
+
+      !    call find_cross(&
+      !       array_x(msk), array_x(msk), array_y(msk), array_y(msk), found_cross, crossed &
+      !    )
+
+      !    if (size(found_cross) > 1) then
+      !       found_cross%i = found_cross%i + msk(1)
+      !       found_cross%j = found_cross%j + msk(1)
+      !    end if
+      ! end if
+
+
+      ! if (size(found_cross) > 0) then
+      !    do i=1,size(found_cross)
+      !       ! TODO: This assumes there is only one self-cross, should be better defined
+      !       idx = minloc(abs(array_x - found_cross(i)%x), dim=1)
+      !       idy = minloc(abs(array_y - found_cross(i)%y), dim=1)
+
+      !       found_cross(i)%i = idx
+      !       found_cross(i)%j = idy
+      !    end do
+      ! end if
+   end subroutine find_self_cross
 end module dtypes

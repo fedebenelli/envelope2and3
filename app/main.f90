@@ -366,9 +366,39 @@ subroutine readcase(n, three_phase)
    print *, Tcr2, Pcr2, "cross2"
 
    open(42, file="./env23out/DSPs")
-   do i = 1, size(crossings)
-      write(42, *) crossings(i)%x, crossings(i)%y
-   end do
+   if (allocated(crossings)) then
+      do i = 1, size(crossings)
+         write(42, *) crossings(i)%x, crossings(i)%y
+      end do
+   end if
+   close(42)
+
+   print *, "============="
+   print *, Tcr1, Pcr1
+   print *, kfcr1(:4)
+   print *, kscr1(:4)
+   print *, ""
+   print *, Tcr2, Pcr2
+   print *, kfcr2(:4)
+   print *, kscr2(:4)
+   print *, "-------------"
+
+   block_cross: block
+      use envelopes, only: find_crossings
+      call find_crossings(&
+         dew_envelope, low_t_envelope, high_p_envelope, &
+         Tcr1, Pcr1, Tcr2, Pcr2, &
+         kfcr1, kscr1, kfcr2, kscr2)
+         print *, "============="
+         print *, Tcr1, Pcr1
+         print *, kfcr1(:4)
+         print *, kscr1(:4)
+         print *, ""
+         print *, Tcr2, Pcr2
+         print *, kfcr2(:4)
+         print *, kscr2(:4)
+         print *, "-------------"
+   end block block_cross
 
    if (three_phase /= "yes") then
       call exit(0)
